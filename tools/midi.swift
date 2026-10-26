@@ -5,7 +5,7 @@
 //   midi list
 //   midi listen <seconds> <name-substring>   (hex, one message per line)
 //   midi send <name-substring> <hex bytes...>
-//   midi hs <name-substring> hello | clear <colour> | release
+//   midi hs <name-substring> hello | clear <colour> | release | knob <knob> <value>
 //   midi hs <name-substring> text <x> <y> <scale> <colour> <words...>
 //     sends Hindsight's message (app/hindsight.h) and times its ack
 import CoreMIDI
@@ -90,11 +90,12 @@ case "hs" where args.count >= 4:
     case "hello": frame.append(0x00)
     case "clear" where args.count == 5: frame += [0x01, UInt8(args[4])!]
     case "release": frame.append(0x03)
+    case "knob" where args.count == 6: frame += [0x04, UInt8(args[4])!, UInt8(args[5])!]
     case "text" where args.count >= 8:
         let n = args[4...7].map { Int($0)! }, words = args[8...].joined(separator: " ")
         frame += [0x02, UInt8(n[0] & 127), UInt8(n[0] >> 7), UInt8(n[1] & 127), UInt8(n[1] >> 7), UInt8(n[2]), UInt8(n[3])]
         frame += Array(words.utf8)
-    default: print("usage: midi hs <name> hello | clear <colour> | release | text <x> <y> <scale> <colour> <words...>"); exit(2)
+    default: print("usage: midi hs <name> hello | clear <colour> | release | knob <knob> <value> | text <x> <y> <scale> <colour> <words...>"); exit(2)
     }
     frame.append(0xF7)
     guard let dest = destinations().first(where: { matches($0, sub) }),
