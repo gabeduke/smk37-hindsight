@@ -6,7 +6,7 @@
     "files":  {
                   "sdk/firmware/SMK37-Elite-V16.fwsc":  "b2ee38abfef3ae922e4eecdb8a551e14345300ae6f270265feacd33b6ef99cb6",
                   "sdk/firmware/SMK37-Pro-V16.fwsc":  "2d98ce72530e71d617384963423820536f094501299e2cfec0a8d3c3fb6bcfb0",
-                  "sdk/Build.ps1":  "44af03ea5dc1a18ebabcef84cdead4ba0571a42b65b0b33cd8dc17a2b97a3110",
+                  "sdk/Build.ps1":  "3c4f56139e19d567bada5c1ccd71b2e3902b71a348bfc2fdf91b4df2c9d827f5",
                   "sdk/config/layout.h":  "a00c6e7f0c1f7f6b4f166168f9dd8d29184295d176370409af7b19768a92459f",
                   "sdk/I18n.js":  "04f5502c80ae57e16eaece9a78ec8f9e047751077591145ac5e98c19a9740308",
                   "sdk/include/fm1.h":  "6a045469bfa41e82732f76c715f1b0c975c45c5f7d11617bf7135f7c37a0b2ee",
