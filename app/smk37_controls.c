@@ -1,7 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception
- * Physical controls shared by Pro, Elite, host tests and the workbench. */
+ * Physical controls shared by Pro, Elite, host tests and the workbench.
+ * Modified 2026-10-26 for Hindsight: while the Pi has the screen, the
+ * surface takes the pads, encoders, faders and buttons (hindsight.h). */
 #include "smk37_controls.h"
 #include "instrument.h"
+#include "hindsight.h"
 #include <string.h>
 
 struct held_note { uint8_t note, channel; };
@@ -185,6 +188,7 @@ static void fader(unsigned id,unsigned value)
 
 void smk37_control_event(unsigned kind,unsigned id,int value)
 {
+    if(hindsight_surface(kind,id,value,bank))return;
     if(kind==SMK37_KEY && id<37) {
         if(!value)release(&held_notes[id]);
         else {

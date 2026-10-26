@@ -2,10 +2,13 @@
  * Added 2026-10-26 for Hindsight. The protocol is in hindsight.h. */
 #include "hindsight.h"
 #include "fm1.h"
+#include "smk37_controls.h"
 #include <string.h>
 
 static struct hs_item items[HS_ITEMS];
 static unsigned count, active, revision, background, owner = FM1_MIDI_USB;
+static uint32_t held_pads, held_buttons;
+static uint8_t knobs[HS_KNOBS];
 /* One message per port waits while that port's queue is full; a newer one
  * replaces it, as only the latest answer is worth sending late. */
 static struct { uint8_t bytes[11], length, pending; uint32_t since; } outgoing[3];
@@ -74,6 +77,9 @@ void hindsight_message(const uint8_t *m, size_t n, unsigned port)
     else if (command == HS_RELEASE) {
         if (length) status = HS_MALFORMED;
         else if (active) { active = 0; ++revision; }
+    } else if (command == HS_KNOB) {
+        if (length != 2 || payload[0] >= HS_KNOBS) status = HS_MALFORMED;
+        else knobs[payload[0]] = payload[1];
     } else
         status = HS_UNKNOWN;
 
@@ -96,6 +102,52 @@ void hindsight_poll(void)
         int r = fm1_midi_send_port(p, outgoing[p].bytes, outgoing[p].length);
         if (r != -2 || now - outgoing[p].since > 500U) outgoing[p].pending = 0;
     }
+}
+
+/* The panel's MIDI to the Pi. A full queue drops it: the Pi's controls are
+ * live gestures, and Open's own MIDI out does the same. */
+static void surface_send(unsigned status, unsigned a, unsigned b)
+{
+    const uint8_t m[3] = {(uint8_t)status, (uint8_t)a, (uint8_t)(b > 127 ? 127 : b)};
+    (void)fm1_midi_send_port(owner, m, 3);
+}
+
+/* A press goes to the Pi while it has the screen, and its release follows
+ * it there; a release whose press the Pi never had is Open's. */
+static int held(uint32_t *mask, unsigned bit, int value, unsigned status, unsigned note, unsigned velocity)
+{
+    if (value ? !active : !(*mask & bit)) return 0;
+    if (value) *mask |= bit; else *mask &= ~bit;
+    surface_send(value ? 0x90 | status : 0x80 | status, note, value ? velocity : 0);
+    return 1;
+}
+
+int hindsight_surface(unsigned kind, unsigned id, int value, unsigned fader_bank)
+{
+    if ((kind == SMK37_PAD || kind == SMK37_PRESSURE) && id < 16) {
+        if (kind == SMK37_PAD)
+            return held(&held_pads, 1U << id, value, HS_PAD_CHANNEL, HS_PAD_NOTE + id, (unsigned)value);
+        if (!(held_pads & (1U << id))) return 0;
+        surface_send(0xa0 | HS_PAD_CHANNEL, HS_PAD_NOTE + id, (unsigned)value);
+        return 1;
+    }
+    if (kind == SMK37_BUTTON && id < 18 && id != 1 && id != 2 && id != 12)
+        return held(&held_buttons, 1U << id, value, HS_SURFACE_CHANNEL, id, 127);
+    if (!active) return 0;
+    if (kind == SMK37_ENCODER && id < HS_KNOBS) {
+        int next = knobs[id] + value;
+        next = next < 0 ? 0 : next > 127 ? 127 : next;
+        if (next != knobs[id]) {
+            knobs[id] = (uint8_t)next;
+            surface_send(0xb0 | HS_SURFACE_CHANNEL, HS_KNOB_CC + id, (unsigned)next);
+        }
+        return 1;
+    }
+    if (kind == SMK37_FADER && id < 4) {
+        surface_send(0xb0 | HS_SURFACE_CHANNEL, HS_FADER_CC + id + (fader_bank ? 4 : 0), (unsigned)value);
+        return 1;
+    }
+    return 0;
 }
 
 void hindsight_release(void)
