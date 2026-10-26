@@ -52,6 +52,9 @@ And from what the research found:
   is updated to match.
 - `tools/container/`: the Linux build, which is also the build a Mac runs.
 - `tools/flash-diff.py`, for after every write.
+- `tools/midi.swift`: a MIDI monitor and sender for the Mac, on CoreMIDI
+  (`swiftc -O -o build/midi tools/midi.swift`; `build/midi list`,
+  `listen 10 SMK`, `send SMK F0 … F7`).
 - `tests/`: the host tests.
 - `.github/workflows/build.yml`: CI.
 
