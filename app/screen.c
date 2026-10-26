@@ -2807,10 +2807,13 @@ void groove_screen_control(void)
                 return;
         }
     }
-    /* HOME takes the screen back from the Pi, then does what it always does.
-     * Either way round, the next frame repaints all of it. */
-    if (hindsight_active() && (controls.buttons & ~previous_buttons & BUTTON(HOME)))
+    /* HOME takes the screen back from the Pi, and that press does nothing
+     * else, so the page is the one that was left. Either way round, the next
+     * frame repaints all of it. */
+    if (hindsight_active() && (controls.buttons & ~previous_buttons & BUTTON(HOME))) {
         hindsight_release();
+        previous_buttons |= BUTTON(HOME);
+    }
     if (hindsight_active() != hindsight_seen) {
         hindsight_seen = hindsight_active();
         hindsight_shown = ~0U;
