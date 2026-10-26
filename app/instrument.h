@@ -1,4 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* Modified 2026-10-26 for Hindsight: new sample transfers stop before the
+ * unit's own regions at 0xC0000 (unit_regions.h). */
 #ifndef FM1_INSTRUMENT_H
 #define FM1_INSTRUMENT_H
 #include "engine.h"
@@ -6,6 +8,7 @@
 #include "sampledrum.h"
 #include "fm1.h"
 #include "fm1_param.h"
+#include "unit_regions.h"
 
 enum {
     GROOVE_TRACKS = 8,
@@ -332,11 +335,17 @@ struct groove_project *groove_project_scratch(void); /* control-only, transient 
 enum { GROOVE_SAMPLE_OFFSET = 69632, GROOVE_SAMPLE_BYTES = 466944,
        GROOVE_FLASH_BYTES = GROOVE_SAMPLE_OFFSET + GROOVE_SAMPLE_BYTES };
 /* Five final sectors hold the four DX7 banks and tuning/session preferences.
- * New sample transfers stop before them. Larger legacy banks stay readable;
- * writes to overlapping extension storage are rejected before erasing Flash. */
+ * New sample transfers stop before the unit's own regions at 0xC0000, about
+ * 200 KiB (M-VAVE's stopped before the DX7 banks). Larger legacy banks stay
+ * readable; writes to overlapping extension storage are rejected before
+ * erasing Flash. */
 enum { GROOVE_TUNING_OFFSET = GROOVE_FLASH_BYTES - 4096,
        GROOVE_LIBRARY_OFFSET = GROOVE_TUNING_OFFSET - 4 * 4096,
-       GROOVE_SAMPLE_LIMIT = GROOVE_LIBRARY_OFFSET - GROOVE_SAMPLE_OFFSET };
+       GROOVE_SAMPLE_LIMIT = UNIT_REGIONS_START - UNIT_USER_BASE - GROOVE_SAMPLE_OFFSET };
+_Static_assert(UNIT_REGIONS_CLEAR(GROOVE_SAMPLE_OFFSET, GROOVE_SAMPLE_LIMIT),
+               "new sample banks stop before the unit's own regions");
+_Static_assert(UNIT_REGIONS_CLEAR(GROOVE_LIBRARY_OFFSET, GROOVE_FLASH_BYTES - GROOVE_LIBRARY_OFFSET),
+               "the DX7 banks and the tuning sector lie past the unit's own regions");
 /* Finish any committed shared journal before starting a new transaction. */
 int groove_storage_prepare(void);
 void groove_samples_init(void);

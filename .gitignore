@@ -30,3 +30,8 @@ id_ed25519
 /INTERNAL_PROVENANCE.md
 /fm1-open-publish.md
 /.codex-sinco/
+
+# Hindsight: a unit's flash dumps never go in a repo (tests/run.sh checks).
+/dumps/
+*.dump
+m-flasher-backup*

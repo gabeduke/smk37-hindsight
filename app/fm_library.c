@@ -1,4 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* Modified 2026-10-26 for Hindsight: assert the staging sector keeps clear
+ * of the unit's own regions (unit_regions.h). */
 #include "instrument.h"
 #include "fm_patch.h"
 #include "fm1_device.h"
@@ -14,6 +16,7 @@
 enum { BANK_MAGIC=0x31424d46U, STAGE=GROOVE_PROJECT_SLOTS*4096, PACKED_VOICE=112 };
 struct bank { uint32_t magic, version, index, crc, commit; uint8_t voice[32][PACKED_VOICE]; };
 _Static_assert(sizeof(struct bank) <= 4096, "DX7 bank and journal fit one sector");
+_Static_assert(UNIT_REGIONS_CLEAR(STAGE, 4096), "the shared staging sector keeps clear of the unit's own regions");
 static const struct bank *banks[4];
 static int blocked;
 
