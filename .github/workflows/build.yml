@@ -18,7 +18,7 @@ env:
 
 jobs:
   host-tests:
-    name: Host tests (the flash guard, flash-diff)
+    name: Host tests (the write areas, flash-diff, no dumps)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
