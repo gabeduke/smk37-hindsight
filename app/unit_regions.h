@@ -16,11 +16,15 @@
 #define UNIT_REGIONS_START 0xC0000U /* Bluetooth pairing, then calibration */
 #define UNIT_REGIONS_END 0xC2000U
 #define UNIT_KEY_START 0xFF000U     /* chip key and MAC */
+#define UNIT_USER_BYTES (UNIT_KEY_START - UNIT_USER_BASE)
 
-/* Whether user-partition bytes [offset, offset + bytes) keep clear of them. */
+/* Whether user-partition bytes [offset, offset + bytes) lie inside the
+ * partition and keep clear of them. The bounds come first, so that a size
+ * that wrapped (a negative enum, say) can't pass. */
 #define UNIT_REGIONS_CLEAR(offset, bytes)                                   \
-    (UNIT_USER_BASE + (offset) + (bytes) <= UNIT_REGIONS_START ||           \
-     (UNIT_USER_BASE + (offset) >= UNIT_REGIONS_END &&                      \
-      UNIT_USER_BASE + (offset) + (bytes) <= UNIT_KEY_START))
+    ((offset) + 0U <= UNIT_USER_BYTES &&                                    \
+     (bytes) + 0U <= UNIT_USER_BYTES - (offset) &&                          \
+     (UNIT_USER_BASE + (offset) + (bytes) <= UNIT_REGIONS_START ||          \
+      UNIT_USER_BASE + (offset) >= UNIT_REGIONS_END))
 
 #endif

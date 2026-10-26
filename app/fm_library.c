@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
 /* Modified 2026-10-26 for Hindsight: assert the staging sector keeps clear
- * of the unit's own regions (unit_regions.h). */
+ * of the unit's own regions (unit_regions.h); a legacy bank is one that runs
+ * past GROOVE_SAMPLE_REACH, M-VAVE's sample limit, not past ours. */
 #include "instrument.h"
 #include "fm_patch.h"
 #include "fm1_device.h"
@@ -90,7 +91,7 @@ static int conflict(void)
     if (fm1_flash_size()<GROOVE_FLASH_BYTES) return FM1_FLASH_UNAVAILABLE;
     int r=fm1_flash_read(GROOVE_SAMPLE_OFFSET,header,sizeof header);
     if (r) return r;
-    return header[0]==0x53314d46U && header[2]>GROOVE_SAMPLE_LIMIT ? GROOVE_PROJECT_TUNING_SPACE : 0;
+    return header[0]==0x53314d46U && header[2]>GROOVE_SAMPLE_REACH ? GROOVE_PROJECT_TUNING_SPACE : 0;
 }
 void groove_fm_library_init(void)
 {

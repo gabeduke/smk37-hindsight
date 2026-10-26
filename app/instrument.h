@@ -336,12 +336,18 @@ enum { GROOVE_SAMPLE_OFFSET = 69632, GROOVE_SAMPLE_BYTES = 466944,
        GROOVE_FLASH_BYTES = GROOVE_SAMPLE_OFFSET + GROOVE_SAMPLE_BYTES };
 /* Five final sectors hold the four DX7 banks and tuning/session preferences.
  * New sample transfers stop before the unit's own regions at 0xC0000, about
- * 200 KiB (M-VAVE's stopped before the DX7 banks). Larger legacy banks stay
+ * 200 KiB. M-VAVE's stopped before the DX7 banks, at GROOVE_SAMPLE_REACH:
+ * a bank written by M-VAVE's firmware may run that far, and one that runs
+ * further is a legacy bank over the DX7 banks. Larger legacy banks stay
  * readable; writes to overlapping extension storage are rejected before
- * erasing Flash. */
+ * erasing Flash. Command 22 reports GROOVE_SAMPLE_LIMIT, which M-VAVE's
+ * workbench refuses (it expects 446464): see HINDSIGHT.md. */
 enum { GROOVE_TUNING_OFFSET = GROOVE_FLASH_BYTES - 4096,
        GROOVE_LIBRARY_OFFSET = GROOVE_TUNING_OFFSET - 4 * 4096,
+       GROOVE_SAMPLE_REACH = GROOVE_LIBRARY_OFFSET - GROOVE_SAMPLE_OFFSET,
        GROOVE_SAMPLE_LIMIT = UNIT_REGIONS_START - UNIT_USER_BASE - GROOVE_SAMPLE_OFFSET };
+_Static_assert(GROOVE_SAMPLE_LIMIT > 0 && GROOVE_SAMPLE_LIMIT % 4096 == 0 && GROOVE_SAMPLE_OFFSET % 4096 == 0,
+               "the sample bank is whole sectors, so erasing its last one stays inside it");
 _Static_assert(UNIT_REGIONS_CLEAR(GROOVE_SAMPLE_OFFSET, GROOVE_SAMPLE_LIMIT),
                "new sample banks stop before the unit's own regions");
 _Static_assert(UNIT_REGIONS_CLEAR(GROOVE_LIBRARY_OFFSET, GROOVE_FLASH_BYTES - GROOVE_LIBRARY_OFFSET),

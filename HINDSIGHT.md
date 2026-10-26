@@ -36,6 +36,16 @@ And from what the research found:
   compile time that it keeps clear of `[0xC0000, 0xC2000)` and
   `[0xFF000, …)`. `tests/run.sh` fails on a Flash write in any other file.
 
+  The device reports the new limit (command 22), and M-VAVE's workbench
+  expects exactly 446,464. So the stock workbench refuses to connect to
+  this firmware, which suits the rule below. A client of ours reads the
+  limit from command 22. Banks written by M-VAVE's firmware are still
+  measured against its limit (`GROOVE_SAMPLE_REACH`).
+
+  The checks are per file: `tests/run.sh` allows Flash writes in
+  `samples.c`, `project.c` and `fm_library.c`, whose areas are asserted.
+  A new write in one of those files has to be checked by its author.
+
   The check is at compile time, not a runtime guard, for lack of room. V01's
   Elite image is 453,892 bytes, and `Package.cs` allows 453,921, so a
   96-byte runtime guard didn't fit. Anything Hindsight adds has to make
@@ -78,8 +88,8 @@ The first run does three things, in order:
 `Build.ps1` then checks the 22 toolchain files against `sdk/manifest.json`.
 The package lands in `build/elite/generated/SMK37_ELITE_OPEN.fwsc`.
 
-CI builds the Elite firmware twice: on `windows-latest`, the platform
-M-VAVE supports, and under Wine on Linux. It fails unless the two packages
+CI builds the Elite firmware twice: on `windows-latest` with Windows
+PowerShell, as `build.bat` does, and under Wine on Linux. It fails unless the two packages
 are the same bytes. That match is what shows the Mac build is right.
 
 ## Tests
