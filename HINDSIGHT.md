@@ -62,9 +62,17 @@ And from what the research found:
   is updated to match.
 - `tools/container/`: the Linux build, which is also the build a Mac runs.
 - `tools/flash-diff.py`, for after every write.
+- `app/hindsight.c` and `app/hindsight.h`: the Pi's SysEx protocol (below).
+  `transfer.c` hands it our frames, in place of the workbench's project
+  transfer protocol. MMC transport and DX7 voice dumps work as before.
+  `screen.c` draws its model, instead of a page, while the Pi has the
+  screen.
 - `tools/midi.swift`: a MIDI monitor and sender for the Mac, on CoreMIDI
-  (`swiftc -O -o build/midi tools/midi.swift`; `build/midi list`,
-  `listen 10 SMK`, `send SMK F0 … F7`).
+  (`swiftc -O -o build/midi tools/midi.swift`). It covers `build/midi
+  list`, `listen 10 SMK` and `send SMK F0 … F7`. `hs SMK hello` sends
+  Hindsight's messages and times their acks.
+- `tools/screen/`: the keyboard's screen rendered on the host, from Open's
+  simulator and this `app/` (below).
 - `tests/`: the host tests.
 - `.github/workflows/build.yml`: CI.
 
@@ -92,28 +100,69 @@ CI builds the Elite firmware twice: on `windows-latest` with Windows
 PowerShell, as `build.bat` does, and under Wine on Linux. It fails unless the two packages
 are the same bytes. That match is what shows the Mac build is right.
 
+## The Pi's protocol
+
+The first proof that the Pi can drive the keyboard: it draws text on the
+screen. `app/hindsight.h` has the full definition.
+
+```
+F0 7D 48 53 01 <seq> <cmd> <payload> F7       48 53 is "HS"; 01 the version
+00 HELLO                                       is this our firmware?
+01 CLEAR   <colour>                            take the screen, fill it
+02 TEXT    <x lo> <x hi> <y lo> <y hi> <scale> <colour> <ASCII...>
+03 RELEASE                                     give the screen back
+ack: F0 7D 48 53 01 <seq> 7F <status> F7      HELLO adds <version> <items>
+```
+
+- TEXT at a place that already has text replaces it, and TEXT with no
+  text removes it.
+- There are up to 16 items and 40 characters each, in seven colours:
+  black, panel, text, dim, accent, green and amber.
+- Lowercase is drawn as capitals, which is the font Open has.
+- HOME gives the screen back to the page that was showing, and does
+  nothing else.
+- Every message is acked on its port, with its seq, so the Pi can time
+  Pi → screen.
+- 0x7D is MIDI's non-commercial ID: fine for our own kit, not for a
+  product.
+
+## Seeing the screen without a keyboard
+
+```sh
+tools/screen/run.sh                 # tools/screen/pass1.txt
+```
+
+It compiles this `app/` code on Open's simulator (`web/engine`) with the
+host's C compiler, plays a script (send SysEx, wait, press a button, take a
+shot), and writes `build/screen/*.png`. CI does the same, uploads the
+pictures, and fails if HOME doesn't put back exactly the page that was left.
+
 ## Tests
 
 ```sh
 tests/run.sh
 ```
 
-It checks four things:
+It checks five things:
 
 - the areas the app writes, by compiling `instrument.h`'s asserts and
   printing the areas;
 - that no other file writes Flash;
+- the Pi's protocol: every command, the acks, malformed frames, a full
+  list, a busy port;
 - `flash-diff.py`;
 - that no dump is in the tree.
 
 ## Room for code
 
-The firmware image and the user partition share the flash below 0xFF000,
-and V01 leaves 29 bytes free in the image. Our own SysEx handler, font and
-drawing need space, which comes from one of two places:
+The firmware image and the user partition share the flash below 0xFF000.
+V01 left 29 bytes free in the image. Replacing the workbench's transfer
+protocol with ours took the Elite's image from 453,892 bytes to 450,500,
+which leaves 3,421 bytes. More room comes from one of two places:
 
-- something Open has that Hindsight doesn't need: the sampler's code, an
-  engine, or the factory DX7 voices;
+- something Open has that Hindsight doesn't need. The plan's cost table
+  lists it (step 7 of `docs/plan/the-instrument.md` in hindsight): mostly
+  Open's sound-editing pages and projects;
 - a smaller user partition. `Package.cs` fixes it at 536,576 bytes and the
   SDK validates it, so whether the SDK takes another size is unknown until
   a unit says so.

@@ -5,6 +5,9 @@
 //   midi list
 //   midi listen <seconds> <name-substring>   (hex, one message per line)
 //   midi send <name-substring> <hex bytes...>
+//   midi hs <name-substring> hello | clear <colour> | release
+//   midi hs <name-substring> text <x> <y> <scale> <colour> <words...>
+//     sends Hindsight's message (app/hindsight.h) and times its ack
 import CoreMIDI
 import Foundation
 
@@ -80,6 +83,48 @@ case "send":
     print("send to " + describe(dest) + ": " + bytes.map { String(format: "%02X", $0) }.joined(separator: " "))
     MIDISend(port, dest, &list)
     RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+case "hs" where args.count >= 4:
+    let sub = args[2], seq = UInt8(Int(Date().timeIntervalSince1970 * 10) % 128)
+    var frame: [UInt8] = [0xF0, 0x7D, 0x48, 0x53, 0x01, seq]
+    switch args[3] {
+    case "hello": frame.append(0x00)
+    case "clear" where args.count == 5: frame += [0x01, UInt8(args[4])!]
+    case "release": frame.append(0x03)
+    case "text" where args.count >= 8:
+        let n = args[4...7].map { Int($0)! }, words = args[8...].joined(separator: " ")
+        frame += [0x02, UInt8(n[0] & 127), UInt8(n[0] >> 7), UInt8(n[1] & 127), UInt8(n[1] >> 7), UInt8(n[2]), UInt8(n[3])]
+        frame += Array(words.utf8)
+    default: print("usage: midi hs <name> hello | clear <colour> | release | text <x> <y> <scale> <colour> <words...>"); exit(2)
+    }
+    frame.append(0xF7)
+    guard let dest = destinations().first(where: { matches($0, sub) }),
+          let source = sources().first(where: { matches($0, sub) }) else { print("no port matches \(sub)"); exit(1) }
+    var ack: [UInt8]? = nil
+    var input = MIDIPortRef()
+    MIDIInputPortCreateWithBlock(client, "in" as CFString, &input) { list, _ in
+        var p = list.pointee.packet
+        for _ in 0..<list.pointee.numPackets {
+            let bytes = withUnsafeBytes(of: p.data) { Array($0.prefix(Int(p.length))) }
+            if bytes.count >= 9 && bytes[0] == 0xF0 && bytes[1] == 0x7D && bytes[2] == 0x48 && bytes[3] == 0x53 &&
+               bytes[5] == seq && bytes[6] == 0x7F { ack = bytes }
+            p = MIDIPacketNext(&p).pointee
+        }
+    }
+    MIDIPortConnectSource(input, source, nil)
+    var output = MIDIPortRef()
+    MIDIOutputPortCreate(client, "out" as CFString, &output)
+    var list = MIDIPacketList()
+    let pkt = MIDIPacketListInit(&list)
+    _ = MIDIPacketListAdd(&list, MemoryLayout<MIDIPacketList>.size, pkt, 0, frame.count, frame)
+    print("send: " + frame.map { String(format: "%02X", $0) }.joined(separator: " "))
+    let sent = Date()
+    MIDISend(output, dest, &list)
+    while ack == nil && Date().timeIntervalSince(sent) < 1 { RunLoop.main.run(until: Date().addingTimeInterval(0.001)) }
+    guard let reply = ack else { print("no ack within a second: not our firmware, or not listening"); exit(1) }
+    let names = ["ok", "unknown command", "malformed", "screen list full"]
+    print(String(format: "ack in %.1f ms: ", Date().timeIntervalSince(sent) * 1000) +
+          (Int(reply[7]) < names.count ? names[Int(reply[7])] : "status \(reply[7])") +
+          (reply.count >= 11 ? ", protocol \(reply[8]), \(reply[9]) items" : ""))
 default:
-    print("usage: midi list | listen <seconds> <name> | send <name> <hex...>")
+    print("usage: midi list | listen <seconds> <name> | send <name> <hex...> | hs <name> ...")
 }
