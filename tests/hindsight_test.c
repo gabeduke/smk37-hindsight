@@ -231,6 +231,20 @@ int main(void)
     CHECK(hindsight_surface(SMK37_PAD, 3, 100, 0) == 0);
     CHECK(hindsight_surface(SMK37_ENCODER, 0, 1, 0) == 0 && hindsight_surface(SMK37_FADER, 0, 1, 0) == 0);
 
+    /* A held HOME's touches: presses and turns, HOME's own and releases aside. */
+    unsigned touches = hindsight_touches();
+    hindsight_surface(SMK37_BUTTON, 2, 1, 0);
+    hindsight_surface(SMK37_BUTTON, 12, 1, 0);
+    hindsight_surface(SMK37_KEY, 3, 0, 0);
+    hindsight_surface(SMK37_FADER, 1, 90, 0);
+    hindsight_surface(SMK37_PRESSURE, 3, 40, 0);
+    CHECK(hindsight_touches() == touches);
+    hindsight_surface(SMK37_KEY, 3, 100, 0);
+    hindsight_surface(SMK37_PAD, 4, 100, 0);
+    hindsight_surface(SMK37_BUTTON, 0, 1, 0); /* SHIFT */
+    hindsight_surface(SMK37_ENCODER, 7, -1, 0); /* the master knob */
+    CHECK(hindsight_touches() == touches + 4);
+
     /* Only three ports. */
     sent_length = 0;
     hindsight_message(hello, sizeof hello, 3);

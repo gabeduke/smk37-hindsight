@@ -117,6 +117,7 @@ ack: F0 7D 48 53 01 <seq> 7F <status> F7      HELLO adds <version> <items>
      status 0 ok, 1 unknown, 2 malformed, 3 full, 4 released
 the keyboard's own: F0 7D 48 53 01 00 03 F7   RELEASE: HOME gave the screen back
                     F0 7D 48 53 01 00 05 F7   OFFER: HOME held, the Pi may take it
+the Pi answers neither; sent to the keyboard, OFFER is answered unknown
 ```
 
 - **Only CLEAR takes the screen.** TEXT while the screen is the keyboard's
@@ -129,15 +130,18 @@ the keyboard's own: F0 7D 48 53 01 00 03 F7   RELEASE: HOME gave the screen back
   capitals, which is the font Open has.
 - **HOME** gives the screen back, and the keyboard sends its own RELEASE
   to the port that sent the CLEAR. Pressed alone, HOME does nothing else,
-  so the page is the one that was left. With another button held it does
-  its usual job too: PLAY+HOME still stops everything.
-- **HOME held for a second**, alone, on the keyboard's own screen, sends
-  OFFER to the port that last sent a CLEAR (USB, before any), once a press.
-  The Pi takes the screen with a CLEAR if it wants it; nothing answers the
-  OFFER. A button, a key or an encoder while HOME is held makes it Open's
-  modifier, as it always was, and offers nothing. The press still does
-  what HOME does on Open's page (PRESETS, or back), so the screen goes back
-  to that page later.
+  so the page is the one that was left. With a button held that Open still
+  has, one pressed before the Pi took the screen, it does its usual job
+  too: PLAY+HOME then stops everything.
+- **HOME held for a second** on the keyboard's own screen sends OFFER as
+  it is let go, to the port that last sent a CLEAR (USB, before any). The
+  Pi takes the screen with a CLEAR if it wants it.
+  - It offers nothing when HOME is pressed with SHIFT or another button,
+    or when anything is pressed or turned while it is held: a key, a pad,
+    a button, an encoder or the master knob. HOME stays Open's modifier,
+    as it always was, however long it is held (HOME+PRESETS, HOME+SEQ).
+  - The press still does what HOME does on Open's page (PRESETS, or back),
+    so the screen goes back to that page later.
 - **Acks:**
   - every message is acked on its port with its seq, so the Pi can time
     Pi → screen;
@@ -200,8 +204,9 @@ scripts and uploads the pictures. It fails unless:
 - the Pi drew;
 - HOME put back exactly the page that was left;
 - a TEXT after HOME changed nothing;
-- HOME held a second offered the screen once, and HOME let go sooner or
-  used as a modifier offered nothing.
+- HOME held a second and let go offered the screen, once and only on the
+  release; HOME let go sooner, with SHIFT, with PLAY, a key or an encoder
+  meanwhile, or pressed while the Pi had the screen offered nothing.
 
 ## Tests
 

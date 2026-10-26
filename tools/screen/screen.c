@@ -10,8 +10,8 @@
  *   clear <colour>                send Hindsight's CLEAR
  *   press <button> / release <button>   an SMK-37 button by physical id (HOME is 2)
  *   button|key|pad|pressure|knob|fader <id> <value>   any panel event
- *   expect <hex bytes...>         the keyboard sent this since the last check
- *   unsent <hex bytes...>         the keyboard didn't send this since the last check
+ *   expect <hex bytes...>         the keyboard sent this since the last expect
+ *   unsent <hex bytes...>         the keyboard didn't send this since the last expect
  *   shot <name>                   save the screen as <out>/<name>.rgb565
  *
  * Everything the keyboard sends is printed as it arrives. A failed expect
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
             for (unsigned i = 0; i < seen_count && i < 128 && !found; ++i) found = !strcmp(seen[i], want);
             if (word[0] == 'e' && !found) { printf("  EXPECTED, NOT SENT: %s\n", want); ++failures; }
             if (word[0] == 'u' && found) { printf("  SENT, NOT EXPECTED: %s\n", want); ++failures; }
-            seen_count = 0;
+            if (word[0] == 'e') seen_count = 0;
         } else if (!strcmp(word, "shot")) {
             char path[1024];
             snprintf(path, sizeof path, "%s/%s.rgb565", argv[2], rest);

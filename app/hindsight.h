@@ -23,15 +23,16 @@
  * message at a time and wait for its ack: the mailbox holds one frame, and
  * a second frame arriving meanwhile is lost. Resend on a timeout; every
  * command can be repeated safely. HOME on the keyboard gives the screen
- * back, and the keyboard says so to the port that sent the CLEAR; HOME held
- * alone for a second, on the keyboard's own screen, offers it to that port
- * (USB, before any CLEAR), which takes it with a CLEAR if it wants it:
+ * back, and the keyboard says so to the port that sent the CLEAR. HOME held
+ * for a second on the keyboard's own screen, and let go with nothing else
+ * pressed or turned meanwhile, offers it to that port (USB, before any
+ * CLEAR), which takes it with a CLEAR if it wants it:
  *
  *   F0 7D 48 53 01 00 03 F7                       RELEASE, from the keyboard
  *   F0 7D 48 53 01 00 05 F7                       OFFER, from the keyboard
  *
- * Neither is answered, and the keyboard answers neither: an OFFER sent to
- * it is UNKNOWN.
+ * The Pi answers neither. Sent to the keyboard, a RELEASE gives the screen
+ * back like any other, and an OFFER is answered UNKNOWN.
  *
  * The keyboard draws from this model on its own control task (screen.c);
  * nothing here touches the screen or Flash.
@@ -86,6 +87,10 @@ unsigned hindsight_active(void);
 void hindsight_release(void);
 /* HOME held: offer the screen to the Pi, if it hasn't got it. */
 void hindsight_offer(void);
+/* How many presses and turns the panel has had, HOME's own aside: keys,
+ * pads, buttons and encoders (the master knob too). A held HOME offers the
+ * screen only if this didn't change while it was held. */
+unsigned hindsight_touches(void);
 unsigned hindsight_revision(void);
 unsigned hindsight_background(void);
 const struct hs_item *hindsight_item(unsigned index);

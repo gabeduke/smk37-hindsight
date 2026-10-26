@@ -8,6 +8,7 @@
 static struct hs_item items[HS_ITEMS];
 static unsigned count, active, revision, background, owner = FM1_MIDI_USB;
 static uint32_t held_pads, held_buttons;
+static unsigned touches;
 static uint8_t knobs[HS_KNOBS];
 /* One message per port waits while that port's queue is full; a newer one
  * replaces it, as only the latest answer is worth sending late. */
@@ -124,6 +125,10 @@ static int held(uint32_t *mask, unsigned bit, int value, unsigned status, unsign
 
 int hindsight_surface(unsigned kind, unsigned id, int value, unsigned fader_bank)
 {
+    if ((kind == SMK37_ENCODER && value) ||
+        (value > 0 && (kind == SMK37_KEY || kind == SMK37_PAD ||
+                       (kind == SMK37_BUTTON && id != 2 && id != 12))))
+        ++touches;
     if ((kind == SMK37_PAD || kind == SMK37_PRESSURE) && id < 16) {
         if (kind == SMK37_PAD)
             return held(&held_pads, 1U << id, value, HS_PAD_CHANNEL, HS_PAD_NOTE + id, (unsigned)value);
@@ -171,6 +176,7 @@ void hindsight_offer(void)
 }
 
 unsigned hindsight_active(void) { return active; }
+unsigned hindsight_touches(void) { return touches; }
 unsigned hindsight_revision(void) { return revision; }
 unsigned hindsight_background(void) { return background; }
 const struct hs_item *hindsight_item(unsigned index) { return index < count ? items + index : NULL; }
