@@ -29,6 +29,15 @@ function Run($program, [string[]]$arguments) {
     try { Tool $program $arguments; $result = $LASTEXITCODE } finally { $ErrorActionPreference = $old }
     if ($result -ne 0) { throw "$([IO.Path]::GetFileName($program)) failed ($result)" }
 }
+# Sort-Object compares by culture, and Windows PowerShell and PowerShell 7
+# order names such as factory_dx7.inc and factory_dx7_packed.inc differently.
+# The link order and the build identity sort ordinally instead, the same everywhere.
+function Sort-Ordinal([string[]]$names) {
+    $list = New-Object 'Collections.Generic.List[string]'
+    foreach ($name in $names) { $list.Add($name) }
+    $list.Sort([StringComparer]::Ordinal)
+    $list
+}
 function Hash($file) { (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Hash-Text($text) {
     $algorithm = [Security.Cryptography.SHA256]::Create()
@@ -360,8 +369,8 @@ foreach ($file in Get-ChildItem -LiteralPath $sdk -Recurse -Force -File) {
 $variantName = 'release'
 $variant = [pscustomobject]@{user_bytes=536576; frozen='sdk/lib/libfm1_engine.a'; update_family=$(if ($Model -eq 'pro') { 8 } else { 9 })}
 $include = @('sdk/include','sdk/include/libc','app/synth','sdk/config','app','app/board')
-$sources = @(Get-ChildItem -LiteralPath (Join-Path $root 'app') -Recurse -File |
-    Where-Object { $_.Extension -in @('.c','.S') -and !$_.FullName.StartsWith(([IO.Path]::GetFullPath((Join-Path $root 'app/synth'))+$separator),[StringComparison]::OrdinalIgnoreCase) } | Sort-Object FullName | ForEach-Object { $_.FullName.Substring($root.Length+1).Replace('\','/') })
+$sources = @(Sort-Ordinal @(Get-ChildItem -LiteralPath (Join-Path $root 'app') -Recurse -File |
+    Where-Object { $_.Extension -in @('.c','.S') -and !$_.FullName.StartsWith(([IO.Path]::GetFullPath((Join-Path $root 'app/synth'))+$separator),[StringComparison]::OrdinalIgnoreCase) } | ForEach-Object { $_.FullName.Substring($root.Length+1).Replace('\','/') }))
 $extra = @('groove_sequence_render','groove_sequence_clock','groove_sequence_position','groove_sequence_transport','fm1_sea_decode_groups','fm1_codec_sea_mono_s16_run') + @($synth.sram_required) + @(
     'synth_dx7_render','synth_dx7_midi','synth_dx7_key','fm1_dx7_panic','fm_exp2_fixed','bass303_bank_render','bass303_bank_key','bass303_bank_set','drum808_kit_render','drum808_kit_trigger','psg_render','psg_key','psg_midi','psg_panic','psg_set','psg_get','pluck_render','pluck_key','pluck_midi','pluck_panic','pluck_set','pluck_get','fm1_mix128','fm1_mix_mono_stereo128','fm1_bus_output128','fm1_master_mix128','fm1_master_gain','fm1_declick128','fm1_render_begin','fm1_render_end','synth_dx7_active','bass303_bank_active','drum808_kit_active','psg_active','pluck_active','sampledrum_active','synth_dx7_limit','psg_limit','pluck_limit','sampledrum_limit','bass303_advance_idle','fm1_send128','fm1_fx_render','fm1_fx_clear','fm1_fx_active','sampledrum_render','sampledrum_trigger','sampledrum_panic','psg_active_chips')
 [IO.Directory]::CreateDirectory((Join-Path $build 'obj')) | Out-Null
@@ -405,8 +414,9 @@ try {
     # The device reports this source/SDK build identity after a browser update.
     # It is distinct from the final package SHA-256 (which covers every byte).
     $identityInputs = @($Profile, (Hash (Join-Path $sdk 'manifest.json')))
-    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $root 'app') -Recurse -File | Sort-Object FullName) {
-        $identityInputs += $file.FullName.Substring($root.Length+1).Replace('\','/') + ':' + (Hash $file.FullName)
+    $appFiles = @(Get-ChildItem -LiteralPath (Join-Path $root 'app') -Recurse -File | ForEach-Object { $_.FullName.Substring($root.Length+1).Replace('\','/') })
+    foreach ($relative in @(Sort-Ordinal $appFiles)) {
+        $identityInputs += $relative + ':' + (Hash (Join-Path $root $relative))
     }
     $buildIdentity = Hash-Text ($identityInputs -join "`n")
     $idBytes = for ($i=0; $i -lt 64; $i+=2) { '0x' + $buildIdentity.Substring($i,2) }
