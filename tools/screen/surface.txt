@@ -32,3 +32,28 @@ pad 3 0                           # the Pi's pad is let go to the Pi
 expect 89 27 00
 wait 300
 shot surface-after-home
+press 2                           # HOME let go within the second offers nothing
+wait 600
+release 2
+wait 600
+unsent F0 7D 48 53 01 00 05 F7
+press 2                           # HOME with PLAY is Open's modifier: no offer
+wait 100
+button 16 1
+wait 1200
+button 16 0
+release 2
+wait 100
+unsent F0 7D 48 53 01 00 05 F7
+press 2                           # HOME held alone for a second offers the screen
+wait 1200
+expect F0 7D 48 53 01 00 05 F7
+shot surface-offered
+wait 1200
+unsent F0 7D 48 53 01 00 05 F7    # once a press
+release 2
+clear 0                           # the Pi takes it
+expect F0 7D 48 53 01 03 7F 00 F7
+pad 3 100                         # and has the pads again
+expect 99 27 64
+pad 3 0

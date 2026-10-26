@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
 /* Modified 2026-10-26 for Hindsight: while the Pi has the screen
  * (hindsight.h), it is drawn from the Pi's model instead of a page; HOME
- * gives it back. */
+ * gives it back, and HOME held for a second offers it to the Pi again. */
 #include "instrument.h"
 #include "fm_patch.h"
 #include "version.h"
@@ -1649,6 +1649,10 @@ static __attribute__((noinline, cold, minsize)) void draw_page_body(const struct
 enum { HINDSIGHT_PAGE = 0x100 };
 static const uint16_t hindsight_palette[HS_COLOURS] = {BACK, PANEL, TEXT, DIM, ACCENT, GREEN, AMBER};
 static unsigned hindsight_shown, hindsight_seen;
+/* A HOME press: 1 while it is held alone, 2 once it has offered the screen
+ * or become a modifier, until it is let go. */
+static unsigned home_hold;
+static uint32_t home_ms;
 static void hindsight_draw(void)
 {
     if (!paint_rendering) {
@@ -2810,6 +2814,19 @@ void groove_screen_control(void)
             if (encoder_active(prior.encoders) && !apply_controls(&prior, now, &ble))
                 return;
         }
+    }
+    /* HOME held alone for a second, on the keyboard's own screen, offers
+     * the screen to the Pi, once a press. A button, a key or an encoder
+     * while it is held makes it Open's modifier instead, as it always was. */
+    if (controls.buttons != BUTTON(HOME) || key_down || encoder_active(controls.encoders) ||
+        hindsight_active())
+        home_hold = controls.buttons & BUTTON(HOME) ? 2 : 0;
+    else if (!(previous_buttons & BUTTON(HOME))) {
+        home_hold = 1;
+        home_ms = now;
+    } else if (home_hold == 1 && now - home_ms >= 1000U) {
+        home_hold = 2;
+        hindsight_offer();
     }
     /* HOME takes the screen back from the Pi. Pressed alone, it does nothing
      * else, so the page is the one that was left; with another button held

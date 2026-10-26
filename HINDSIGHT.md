@@ -115,7 +115,8 @@ F0 7D 48 53 01 <seq> <cmd> <payload> F7       48 53 is "HS"; 01 the version
 04 KNOB    <knob 0-6> <value 0-127>            where an encoder stands
 ack: F0 7D 48 53 01 <seq> 7F <status> F7      HELLO adds <version> <items>
      status 0 ok, 1 unknown, 2 malformed, 3 full, 4 released
-the keyboard's own: F0 7D 48 53 01 00 03 F7   HOME gave the screen back
+the keyboard's own: F0 7D 48 53 01 00 03 F7   RELEASE: HOME gave the screen back
+                    F0 7D 48 53 01 00 05 F7   OFFER: HOME held, the Pi may take it
 ```
 
 - **Only CLEAR takes the screen.** TEXT while the screen is the keyboard's
@@ -130,6 +131,13 @@ the keyboard's own: F0 7D 48 53 01 00 03 F7   HOME gave the screen back
   to the port that sent the CLEAR. Pressed alone, HOME does nothing else,
   so the page is the one that was left. With another button held it does
   its usual job too: PLAY+HOME still stops everything.
+- **HOME held for a second**, alone, on the keyboard's own screen, sends
+  OFFER to the port that last sent a CLEAR (USB, before any), once a press.
+  The Pi takes the screen with a CLEAR if it wants it; nothing answers the
+  OFFER. A button, a key or an encoder while HOME is held makes it Open's
+  modifier, as it always was, and offers nothing. The press still does
+  what HOME does on Open's page (PRESETS, or back), so the screen goes back
+  to that page later.
 - **Acks:**
   - every message is acked on its port with its seq, so the Pi can time
     Pi → screen;
@@ -185,13 +193,15 @@ tools/screen/run.sh tools/screen/surface.txt
 
 It compiles this `app/` code on Open's simulator (`web/engine`) with the
 host's C compiler and plays a script. A script sends SysEx, waits, presses
-pads, keys, encoders, faders and buttons, expects what the keyboard sends,
-and takes shots, which land in `build/screen/<script>/`. CI plays both
+pads, keys, encoders, faders and buttons, expects what the keyboard sends
+(or that it sent nothing of the kind), and takes shots, which land in `build/screen/<script>/`. CI plays both
 scripts and uploads the pictures. It fails unless:
 - every expect held;
 - the Pi drew;
 - HOME put back exactly the page that was left;
-- a TEXT after HOME changed nothing.
+- a TEXT after HOME changed nothing;
+- HOME held a second offered the screen once, and HOME let go sooner or
+  used as a modifier offered nothing.
 
 ## Tests
 
@@ -205,8 +215,8 @@ It checks five things:
   printing the areas;
 - that no other file writes Flash;
 - the Pi's protocol: every command, the acks, malformed frames, a full
-  list, a busy port, and the surface (each control, ownership across HOME,
-  the clamps);
+  list, a busy port, the surface (each control, ownership across HOME,
+  the clamps) and OFFER;
 - `flash-diff.py`;
 - that no dump is in the tree.
 

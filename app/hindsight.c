@@ -150,13 +150,24 @@ int hindsight_surface(unsigned kind, unsigned id, int value, unsigned fader_bank
     return 0;
 }
 
+/* A message of the keyboard's own, seq 0, to the port that took the screen. */
+static void tell(unsigned command)
+{
+    const uint8_t m[] = {0xf0, 0x7d, 'H', 'S', HS_VERSION, 0, (uint8_t)command, 0xf7};
+    queue(owner, m, sizeof m);
+}
+
 void hindsight_release(void)
 {
     if (!active) return;
     active = 0;
     ++revision;
-    static const uint8_t release[] = {0xf0, 0x7d, 'H', 'S', HS_VERSION, 0, HS_RELEASE, 0xf7};
-    queue(owner, release, sizeof release);
+    tell(HS_RELEASE);
+}
+
+void hindsight_offer(void)
+{
+    if (!active) tell(HS_OFFER);
 }
 
 unsigned hindsight_active(void) { return active; }

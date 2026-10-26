@@ -23,9 +23,15 @@
  * message at a time and wait for its ack: the mailbox holds one frame, and
  * a second frame arriving meanwhile is lost. Resend on a timeout; every
  * command can be repeated safely. HOME on the keyboard gives the screen
- * back, and the keyboard says so to the port that sent the CLEAR:
+ * back, and the keyboard says so to the port that sent the CLEAR; HOME held
+ * alone for a second, on the keyboard's own screen, offers it to that port
+ * (USB, before any CLEAR), which takes it with a CLEAR if it wants it:
  *
  *   F0 7D 48 53 01 00 03 F7                       RELEASE, from the keyboard
+ *   F0 7D 48 53 01 00 05 F7                       OFFER, from the keyboard
+ *
+ * Neither is answered, and the keyboard answers neither: an OFFER sent to
+ * it is UNKNOWN.
  *
  * The keyboard draws from this model on its own control task (screen.c);
  * nothing here touches the screen or Flash.
@@ -55,7 +61,7 @@
 #include <stdint.h>
 
 enum { HS_VERSION = 1, HS_ITEMS = 16, HS_TEXT = 40, HS_COLOURS = 7, HS_KNOBS = 7 };
-enum { HS_HELLO = 0, HS_CLEAR = 1, HS_TEXT_AT = 2, HS_RELEASE = 3, HS_KNOB = 4, HS_ACK = 0x7f };
+enum { HS_HELLO = 0, HS_CLEAR = 1, HS_TEXT_AT = 2, HS_RELEASE = 3, HS_KNOB = 4, HS_OFFER = 5, HS_ACK = 0x7f };
 enum { HS_PAD_CHANNEL = 9, HS_PAD_NOTE = 36, HS_SURFACE_CHANNEL = 15, HS_KNOB_CC = 21, HS_FADER_CC = 28 };
 enum { HS_OK = 0, HS_UNKNOWN = 1, HS_MALFORMED = 2, HS_FULL = 3, HS_RELEASED = 4 };
 
@@ -78,6 +84,8 @@ int hindsight_surface(unsigned kind, unsigned id, int value, unsigned fader_bank
 unsigned hindsight_active(void);
 /* HOME: give the screen back, and tell the Pi. */
 void hindsight_release(void);
+/* HOME held: offer the screen to the Pi, if it hasn't got it. */
+void hindsight_offer(void);
 unsigned hindsight_revision(void);
 unsigned hindsight_background(void);
 const struct hs_item *hindsight_item(unsigned index);

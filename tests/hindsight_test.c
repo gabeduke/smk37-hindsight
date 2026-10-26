@@ -149,6 +149,20 @@ int main(void)
     /* The keyboard's RELEASE, echoed back, is answered once and ends there. */
     CHECK(message(0, HS_RELEASE, 0) == HS_OK && !hindsight_active());
 
+    /* HOME held offers the screen to the port that last took it, only while
+     * the screen is the keyboard's; an OFFER sent to the keyboard is UNKNOWN. */
+    sent_length = 0;
+    hindsight_offer();
+    const uint8_t offer[] = {0xf0, 0x7d, 'H', 'S', 1, 0, HS_OFFER, 0xf7};
+    CHECK(sent_port == FM1_MIDI_BLE && sent_length == sizeof offer && !memcmp(sent, offer, sizeof offer));
+    CHECK(!hindsight_active());
+    hindsight_message(clear_ble, sizeof clear_ble, FM1_MIDI_BLE);
+    sent_length = 0;
+    hindsight_offer();
+    CHECK(sent_length == 0 && hindsight_active());
+    hindsight_release();
+    CHECK(message(0, HS_OFFER, 0) == HS_UNKNOWN && !hindsight_active());
+
     /* A busy port is retried, then given up on. */
     busy = 1; sends = 0; clock_ms = 1000;
     CHECK(message(6, HS_HELLO, 0) == -1 && sends == 1);

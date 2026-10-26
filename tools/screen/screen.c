@@ -10,7 +10,8 @@
  *   clear <colour>                send Hindsight's CLEAR
  *   press <button> / release <button>   an SMK-37 button by physical id (HOME is 2)
  *   button|key|pad|pressure|knob|fader <id> <value>   any panel event
- *   expect <hex bytes...>         the keyboard sent this since the last expect
+ *   expect <hex bytes...>         the keyboard sent this since the last check
+ *   unsent <hex bytes...>         the keyboard didn't send this since the last check
  *   shot <name>                   save the screen as <out>/<name>.rgb565
  *
  * Everything the keyboard sends is printed as it arrives. A failed expect
@@ -104,13 +105,14 @@ int main(int argc, char **argv)
             else if (sscanf(rest, "%u %d", &id, &value) != 2) { printf("  bad control line\n"); continue; }
             if (sim_smk37((unsigned)kind, id, value)) printf("  refused by the simulator\n");
             acks();
-        } else if (!strcmp(word, "expect")) {
+        } else if (!strcmp(word, "expect") || !strcmp(word, "unsent")) {
             char want[64] = ""; unsigned at = 0, byte; int used_hex = 0;
             for (char *p = rest; at + 4 < sizeof want && sscanf(p, "%x %n", &byte, &used_hex) == 1; p += used_hex)
                 at += (unsigned)snprintf(want + at, sizeof want - at, at ? " %02X" : "%02X", byte);
             unsigned found = 0;
             for (unsigned i = 0; i < seen_count && i < 128 && !found; ++i) found = !strcmp(seen[i], want);
-            if (!found) { printf("  EXPECTED, NOT SENT: %s\n", want); ++failures; }
+            if (word[0] == 'e' && !found) { printf("  EXPECTED, NOT SENT: %s\n", want); ++failures; }
+            if (word[0] == 'u' && found) { printf("  SENT, NOT EXPECTED: %s\n", want); ++failures; }
             seen_count = 0;
         } else if (!strcmp(word, "shot")) {
             char path[1024];
