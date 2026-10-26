@@ -1,0 +1,23 @@
+# Pass 1: the Pi draws text over SysEx, and HOME gives the screen back.
+boot
+wait 1500
+shot 1-open-home
+sysex F0 7D 48 53 01 01 00 F7          # HELLO: version and room
+clear 0
+text 8 8 1 3 HINDSIGHT
+text 8 30 3 2 TAPE 3
+text 8 62 2 4 1:23.4
+text 8 100 1 2 Tracks: drums, bass, keys
+text 8 116 1 5 PLAYING   LOOP 4 BARS
+text 8 200 1 3 HOME gives the screen back
+wait 200
+shot 2-pi-screen
+text 8 62 2 6 1:24.0                    # the counter moves: same place, new text
+text 8 116 1 5                          # no text: remove the line
+wait 200
+shot 3-pi-update
+press 2
+wait 50
+release 2
+wait 400
+shot 4-after-home

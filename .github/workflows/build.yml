@@ -19,11 +19,22 @@ env:
 
 jobs:
   host-tests:
-    name: Host tests (the write areas, flash-diff, no dumps)
+    name: Host tests (the write areas, the protocol, flash-diff, no dumps; the screen)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: tests/run.sh
+      - name: Render the screen script on Open's simulator
+        env:
+          CC: clang
+        run: |
+          tools/screen/run.sh
+          # HOME gives the screen back exactly as it was.
+          cmp build/screen/1-open-home.png build/screen/4-after-home.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screen
+          path: build/screen/*.png
 
   windows:
     name: Windows (M-VAVE's platform)
