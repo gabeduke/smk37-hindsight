@@ -121,7 +121,7 @@ case "hs" where args.count >= 4:
     MIDISend(output, dest, &list)
     while ack == nil && Date().timeIntervalSince(sent) < 1 { RunLoop.main.run(until: Date().addingTimeInterval(0.001)) }
     guard let reply = ack else { print("no ack within a second: not our firmware, or not listening"); exit(1) }
-    let names = ["ok", "unknown command", "malformed", "screen list full"]
+    let names = ["ok", "unknown command", "malformed", "screen list full", "released: the screen is the keyboard's; CLEAR takes it"]
     print(String(format: "ack in %.1f ms: ", Date().timeIntervalSince(sent) * 1000) +
           (Int(reply[7]) < names.count ? names[Int(reply[7])] : "status \(reply[7])") +
           (reply.count >= 11 ? ", protocol \(reply[8]), \(reply[9]) items" : ""))

@@ -1,4 +1,5 @@
 # Pass 1: the Pi draws text over SysEx, and HOME gives the screen back.
+# CI checks shots 1, 4 and 5 are the same page, and that 2 is not.
 boot
 wait 1500
 shot 1-open-home
@@ -21,3 +22,10 @@ wait 50
 release 2
 wait 400
 shot 4-after-home
+text 8 62 2 6 1:25.0                    # the Pi, not knowing yet: answered RELEASED
+wait 200
+shot 5-text-after-home
+clear 1                                 # CLEAR takes the screen again
+text 8 8 2 2 BACK AGAIN
+wait 200
+shot 6-pi-again

@@ -1643,13 +1643,17 @@ static __attribute__((noinline, cold, minsize)) void draw_page_body(const struct
     hint_draw(hint);
 }
 /* The Pi's screen: its text items on its background, in the palette's
- * order (hindsight.h). Any change repaints the whole screen. */
+ * order (hindsight.h). Any change repaints the whole screen. It marks the
+ * cache as shown with a value no page has, so draw() idles between changes,
+ * and a lost DMA band (shown_page = ~0U) repaints it like any page. */
+enum { HINDSIGHT_PAGE = 0x100 };
 static const uint16_t hindsight_palette[HS_COLOURS] = {BACK, PANEL, TEXT, DIM, ACCENT, GREEN, AMBER};
-static unsigned hindsight_shown = ~0U, hindsight_seen;
+static unsigned hindsight_shown, hindsight_seen;
 static void hindsight_draw(void)
 {
     if (!paint_rendering) {
-        if (hindsight_shown == hindsight_revision()) return;
+        if (cache->shown_page == HINDSIGHT_PAGE && hindsight_shown == hindsight_revision()) return;
+        cache->shown_page = HINDSIGHT_PAGE;
         hindsight_shown = hindsight_revision();
     }
     uint16_t back = hindsight_palette[hindsight_background()];
@@ -2807,16 +2811,16 @@ void groove_screen_control(void)
                 return;
         }
     }
-    /* HOME takes the screen back from the Pi, and that press does nothing
-     * else, so the page is the one that was left. Either way round, the next
-     * frame repaints all of it. */
+    /* HOME takes the screen back from the Pi. Pressed alone, it does nothing
+     * else, so the page is the one that was left; with another button held
+     * (PLAY+HOME stops everything) it does what it always does. Either way
+     * round, the next frame repaints all of it. */
     if (hindsight_active() && (controls.buttons & ~previous_buttons & BUTTON(HOME))) {
         hindsight_release();
-        previous_buttons |= BUTTON(HOME);
+        if (controls.buttons == BUTTON(HOME)) previous_buttons |= BUTTON(HOME);
     }
     if (hindsight_active() != hindsight_seen) {
         hindsight_seen = hindsight_active();
-        hindsight_shown = ~0U;
         saved_cache.shown_page = ~0U;
     }
     read_encoders(&controls, now, boundary);

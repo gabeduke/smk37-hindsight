@@ -29,8 +29,11 @@ jobs:
           CC: clang
         run: |
           tools/screen/run.sh
-          # HOME gives the screen back exactly as it was.
-          cmp build/screen/1-open-home.png build/screen/4-after-home.png
+          cd build/screen
+          # The Pi drew; HOME gave back exactly the page it left; a TEXT after that changed nothing.
+          ! cmp -s 1-open-home.png 2-pi-screen.png
+          cmp 1-open-home.png 4-after-home.png
+          cmp 1-open-home.png 5-text-after-home.png
       - uses: actions/upload-artifact@v4
         with:
           name: screen

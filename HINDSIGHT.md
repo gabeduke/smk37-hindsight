@@ -36,11 +36,11 @@ And from what the research found:
   compile time that it keeps clear of `[0xC0000, 0xC2000)` and
   `[0xFF000, …)`. `tests/run.sh` fails on a Flash write in any other file.
 
-  The device reports the new limit (command 22), and M-VAVE's workbench
-  expects exactly 446,464. So the stock workbench refuses to connect to
-  this firmware, which suits the rule below. A client of ours reads the
-  limit from command 22. Banks written by M-VAVE's firmware are still
-  measured against its limit (`GROOVE_SAMPLE_REACH`).
+  M-VAVE's workbench learns the limit from the device's transfer
+  protocol, which is gone (see `app/hindsight.c` below). So the stock
+  workbench can't connect to this firmware, which suits the rule below.
+  Banks written by M-VAVE's firmware are still measured against its limit
+  (`GROOVE_SAMPLE_REACH`).
 
   The checks are per file: `tests/run.sh` allows Flash writes in
   `samples.c`, `project.c` and `fm_library.c`, whose areas are asserted.
@@ -112,19 +112,38 @@ F0 7D 48 53 01 <seq> <cmd> <payload> F7       48 53 is "HS"; 01 the version
 02 TEXT    <x lo> <x hi> <y lo> <y hi> <scale> <colour> <ASCII...>
 03 RELEASE                                     give the screen back
 ack: F0 7D 48 53 01 <seq> 7F <status> F7      HELLO adds <version> <items>
+     status 0 ok, 1 unknown, 2 malformed, 3 full, 4 released
+the keyboard's own: F0 7D 48 53 01 00 03 F7   HOME gave the screen back
 ```
 
-- TEXT at a place that already has text replaces it, and TEXT with no
-  text removes it.
-- There are up to 16 items and 40 characters each, in seven colours:
-  black, panel, text, dim, accent, green and amber.
-- Lowercase is drawn as capitals, which is the font Open has.
-- HOME gives the screen back to the page that was showing, and does
-  nothing else.
-- Every message is acked on its port, with its seq, so the Pi can time
-  Pi → screen.
-- 0x7D is MIDI's non-commercial ID: fine for our own kit, not for a
-  product.
+- **Only CLEAR takes the screen.** TEXT while the screen is the keyboard's
+  is answered *released* and changes nothing. So a Pi still updating a
+  counter can't undo a HOME.
+- **TEXT works by place.** TEXT where there's already text replaces it,
+  and TEXT with no text removes it. At least one glyph has to fit.
+- **Limits:** up to 16 items of 40 characters, in seven colours (black,
+  panel, text, dim, accent, green and amber). Lowercase is drawn as
+  capitals, which is the font Open has.
+- **HOME** gives the screen back, and the keyboard sends its own RELEASE
+  to the port that sent the CLEAR. Pressed alone, HOME does nothing else,
+  so the page is the one that was left. With another button held it does
+  its usual job too: PLAY+HOME still stops everything.
+- **Acks:**
+  - every message is acked on its port with its seq, so the Pi can time
+    Pi → screen;
+  - acks are never answered, so an echo can't loop;
+  - send one message at a time and wait for its ack: the mailbox holds
+    one frame, and a second arriving meanwhile is lost. Resend on a
+    timeout; every command can be repeated safely.
+- **The manufacturer ID:** 0x7D is MIDI's non-commercial ID, fine for our
+  own kit but not for a product.
+
+What pass 1 doesn't do yet:
+- While the Pi has the screen, the controls still act on Open's hidden
+  page, and the button LEDs keep showing it.
+- Any change repaints the whole screen. That is bounded at 4 ms of each
+  poll, so it's safe, but a fast counter keeps the LCD busy. Repainting
+  only the changed text is the next step.
 
 ## Seeing the screen without a keyboard
 
@@ -134,8 +153,9 @@ tools/screen/run.sh                 # tools/screen/pass1.txt
 
 It compiles this `app/` code on Open's simulator (`web/engine`) with the
 host's C compiler, plays a script (send SysEx, wait, press a button, take a
-shot), and writes `build/screen/*.png`. CI does the same, uploads the
-pictures, and fails if HOME doesn't put back exactly the page that was left.
+shot), and writes `build/screen/*.png`. CI does the same and uploads the
+pictures. It fails unless the Pi drew, HOME put back exactly the page that
+was left, and a TEXT after HOME changed nothing.
 
 ## Tests
 

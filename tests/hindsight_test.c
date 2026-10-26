@@ -65,6 +65,14 @@ int main(void)
     CHECK(sent_length == sizeof hello_ack && !memcmp(sent, hello_ack, sizeof hello_ack) && sent_port == FM1_MIDI_USB);
     CHECK(!hindsight_active());
 
+    /* An ack is never answered: an echo can't become a loop. */
+    sent_length = 0; sends = 0;
+    hindsight_message(hello_ack, sizeof hello_ack, FM1_MIDI_USB);
+    CHECK(sends == 0 && !hindsight_active());
+
+    /* TEXT can't take the screen; only CLEAR can. */
+    CHECK(text(8, 8, 1, 2, "EARLY") == HS_RELEASED && !hindsight_active() && !hindsight_item(0));
+
     /* CLEAR takes the screen. */
     unsigned revision = hindsight_revision();
     CHECK(message(1, HS_CLEAR, 1, 2) == HS_OK);
@@ -78,12 +86,21 @@ int main(void)
     CHECK(text(200, 120, 1, 2, "Bye") == HS_OK && !strcmp(hindsight_item(0)->text, "Bye") && !hindsight_item(1));
     CHECK(text(8, 8, 1, 2, "TAPE 1") == HS_OK && hindsight_item(1));
     CHECK(text(200, 120, 1, 2, "") == HS_OK && !strcmp(hindsight_item(0)->text, "TAPE 1") && !hindsight_item(1));
-    CHECK(text(239, 239, 1, 2, "x") == HS_OK);
+    /* Removing from the middle keeps the order of the rest. */
+    CHECK(text(8, 20, 1, 2, "B") == HS_OK && text(8, 32, 1, 2, "C") == HS_OK);
+    CHECK(text(8, 20, 1, 2, "") == HS_OK && !strcmp(hindsight_item(0)->text, "TAPE 1") &&
+          !strcmp(hindsight_item(1)->text, "C") && !hindsight_item(2));
+    /* One glyph has to fit: 234 + 6 and 233 + 7 are 240; at scale 4, 212 + 28. */
+    CHECK(text(234, 233, 1, 2, "x") == HS_OK);
+    CHECK(text(0, 212, 4, 2, "x") == HS_OK);
 
     /* What doesn't fit the screen, the scales or the palette is refused, and changes nothing. */
     revision = hindsight_revision();
     CHECK(text(240, 0, 1, 2, "x") == HS_MALFORMED);
     CHECK(text(0, 240, 1, 2, "x") == HS_MALFORMED);
+    CHECK(text(235, 0, 1, 2, "x") == HS_MALFORMED);
+    CHECK(text(0, 234, 1, 2, "x") == HS_MALFORMED);
+    CHECK(text(0, 213, 4, 2, "x") == HS_MALFORMED);
     CHECK(text(0, 0, 0, 2, "x") == HS_MALFORMED);
     CHECK(text(0, 0, 5, 2, "x") == HS_MALFORMED);
     CHECK(text(0, 0, 1, HS_COLOURS, "x") == HS_MALFORMED);
@@ -109,9 +126,27 @@ int main(void)
     CHECK(text(100, 0, 1, 2, "ONE MORE") == HS_FULL && !hindsight_item(HS_ITEMS));
     CHECK(text(0, 0, 1, 2, "REPLACED") == HS_OK);
 
-    /* RELEASE gives the screen back. */
+    /* RELEASE gives the screen back, and then TEXT changes nothing. */
     revision = hindsight_revision();
     CHECK(message(4, HS_RELEASE, 0) == HS_OK && !hindsight_active() && hindsight_revision() != revision);
+    revision = hindsight_revision();
+    CHECK(text(0, 0, 1, 2, "LATE") == HS_RELEASED && hindsight_revision() == revision &&
+          !strcmp(hindsight_item(0)->text, "REPLACED"));
+
+    /* HOME gives the screen back and tells the port that sent the CLEAR, once. */
+    uint8_t clear_ble[] = {0xf0, 0x7d, 'H', 'S', 1, 8, HS_CLEAR, 0, 0xf7};
+    hindsight_message(clear_ble, sizeof clear_ble, FM1_MIDI_BLE);
+    CHECK(hindsight_active());
+    sent_length = 0;
+    hindsight_release();
+    const uint8_t release[] = {0xf0, 0x7d, 'H', 'S', 1, 0, HS_RELEASE, 0xf7};
+    CHECK(!hindsight_active() && sent_port == FM1_MIDI_BLE && sent_length == sizeof release &&
+          !memcmp(sent, release, sizeof release));
+    sent_length = 0;
+    hindsight_release();
+    CHECK(sent_length == 0);
+    /* The keyboard's RELEASE, echoed back, is answered once and ends there. */
+    CHECK(message(0, HS_RELEASE, 0) == HS_OK && !hindsight_active());
 
     /* A busy port is retried, then given up on. */
     busy = 1; sends = 0; clock_ms = 1000;

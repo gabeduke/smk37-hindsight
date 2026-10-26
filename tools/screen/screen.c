@@ -11,7 +11,7 @@
  *   press <button> / release <button>   an SMK-37 button by physical id (HOME is 2)
  *   shot <name>                   save the screen as <out>/<name>.rgb565
  *
- * Acks the keyboard sends are printed as they arrive. */
+ * What the keyboard sends (acks, its RELEASE) is printed as it arrives. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,7 @@ static void acks(void)
         unsigned n = r & 255U;
         const uint8_t *b = sim_file();
         if (n < 4 || b[0] != 0xf0) continue;
-        printf("  ack:");
+        printf("  from the keyboard:");
         for (unsigned i = 0; i < n; ++i) printf(" %02X", b[i]);
         printf("\n");
     }
