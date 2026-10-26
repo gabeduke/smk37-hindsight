@@ -2,7 +2,9 @@
 /* Modified 2026-10-17: bind tuning to project contents, not device settings;
  * preserve valid version-1 entries before rewriting their project records;
  * defer edit checkpoints until allocation succeeds; reject tuned saves that
- * overlap a legacy sample bank before changing Flash. */
+ * overlap a legacy sample bank before changing Flash.
+ * Modified 2026-10-26 for Hindsight: assert the project sectors keep clear
+ * of the unit's own regions (unit_regions.h). */
 #include "instrument.h"
 #include "tuning_hook.h"
 #include "fm_patch.h"
@@ -20,6 +22,8 @@ enum { PROJECT_MAGIC = 0x36504d46U, SETTINGS_MAGIC = 0x36534d46U,
        LEGACY_PROJECT_MAGIC = 0x34504d46U, LEGACY_SETTINGS_MAGIC = 0x34534d46U,
        SETTINGS_SECTOR = GROOVE_PROJECT_SLOTS - 1, STAGING_SECTOR = GROOVE_PROJECT_SLOTS,
        USER_BYTES = (GROOVE_PROJECT_SLOTS + 1) * FM1_FLASH_SECTOR_BYTES };
+_Static_assert(UNIT_REGIONS_CLEAR(0, USER_BYTES) && USER_BYTES <= GROOVE_SAMPLE_OFFSET,
+               "project, settings and staging sectors lie before the samples and the unit's own regions");
 struct header { uint32_t magic, generation, target, crc, commit; };
 /* Device preferences are independent of project editing and undo. */
 struct settings { uint8_t role, clock, slot, radio_off; struct groove_midi_config midi; };

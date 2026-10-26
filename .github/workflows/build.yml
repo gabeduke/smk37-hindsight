@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception
+# Builds the Elite firmware twice: on Windows, the platform M-VAVE supports,
+# and on Linux under Wine, the build a Mac runs (tools/container). The two
+# packages have to be the same bytes; that is what proves the Mac build.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TOOLCHAIN_URL: https://jl-update.oss-cn-shenzhen.aliyuncs.com/2.5.3.exe
+  TOOLCHAIN_SHA256: 399bd518a28e47a7a0394506cebd5bf658748a58cd6b7c02512e24b4b88c5a5e
+
+jobs:
+  host-tests:
+    name: Host tests (the write areas, flash-diff, no dumps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: tests/run.sh
+
+  windows:
+    name: Windows (M-VAVE's platform)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/smk37-toolchain/2.5.3.exe
+          key: jieli-${{ env.TOOLCHAIN_SHA256 }}
+      - name: Fetch and unpack JieLi's 2.5.3 toolchain (never run the installer)
+        shell: pwsh
+        run: |
+          $cache = Join-Path $env:RUNNER_TEMP 'smk37-toolchain'
+          $exe = Join-Path $cache '2.5.3.exe'
+          if (!(Test-Path $exe)) {
+            New-Item -ItemType Directory -Force $cache | Out-Null
+            Invoke-WebRequest $env:TOOLCHAIN_URL -OutFile $exe
+          }
+          if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:TOOLCHAIN_SHA256) { throw 'The toolchain installer is not the expected one.' }
+          choco install innoextract --no-progress -y
+          innoextract -s -d (Join-Path $cache 'unpacked') $exe
+      - name: Build the Elite firmware with Windows PowerShell, as build.bat does
+        shell: powershell
+        run: ./sdk/Build.ps1 -Model elite -FirmwareOnly -Toolchain (Join-Path $env:RUNNER_TEMP 'smk37-toolchain/unpacked/C$/JL/pi32')
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-elite
+          path: |
+            build/elite/generated/SMK37_ELITE_OPEN.fwsc
+            build/elite/*.json
+            build/elite/sdk.map
+
+  wine:
+    name: Linux under Wine (what a Mac runs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/smk37-toolchain/2.5.3.exe
+          key: jieli-${{ env.TOOLCHAIN_SHA256 }}
+      - name: Build the Elite firmware in the container
+        env:
+          SMK37_TOOLCHAIN_CACHE: ${{ runner.temp }}/smk37-toolchain
+        run: tools/container/build.sh elite
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wine-elite
+          path: |
+            build/elite/generated/SMK37_ELITE_OPEN.fwsc
+            build/elite/*.json
+            build/elite/sdk.map
+
+  compare:
+    name: The two builds are the same bytes
+    needs: [windows, wine]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+      - name: Compare
+        run: |
+          sha256sum windows-elite/generated/SMK37_ELITE_OPEN.fwsc wine-elite/generated/SMK37_ELITE_OPEN.fwsc
+          jq -c '{app_image_bytes, allocated_image_bytes, runtime_heap_bytes}' windows-elite/firmware-report.json wine-elite/firmware-report.json
+          cmp windows-elite/generated/SMK37_ELITE_OPEN.fwsc wine-elite/generated/SMK37_ELITE_OPEN.fwsc
