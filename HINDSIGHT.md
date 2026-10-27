@@ -36,11 +36,11 @@ And from what the research found:
   compile time that it keeps clear of `[0xC0000, 0xC2000)` and
   `[0xFF000, …)`. `tests/run.sh` fails on a Flash write in any other file.
 
-  The device reports the new limit (command 22), and M-VAVE's workbench
-  expects exactly 446,464. So the stock workbench refuses to connect to
-  this firmware, which suits the rule below. A client of ours reads the
-  limit from command 22. Banks written by M-VAVE's firmware are still
-  measured against its limit (`GROOVE_SAMPLE_REACH`).
+  M-VAVE's workbench learns the limit from the device's transfer
+  protocol, which is gone (see `app/hindsight.c` below). So the stock
+  workbench can't connect to this firmware, which suits the rule below.
+  Banks written by M-VAVE's firmware are still measured against its limit
+  (`GROOVE_SAMPLE_REACH`).
 
   The checks are per file: `tests/run.sh` allows Flash writes in
   `samples.c`, `project.c` and `fm_library.c`, whose areas are asserted.
@@ -62,9 +62,17 @@ And from what the research found:
   is updated to match.
 - `tools/container/`: the Linux build, which is also the build a Mac runs.
 - `tools/flash-diff.py`, for after every write.
+- `app/hindsight.c` and `app/hindsight.h`: the Pi's SysEx protocol (below).
+  `transfer.c` hands it our frames, in place of the workbench's project
+  transfer protocol. MMC transport and DX7 voice dumps work as before.
+  `screen.c` draws its model, instead of a page, while the Pi has the
+  screen.
 - `tools/midi.swift`: a MIDI monitor and sender for the Mac, on CoreMIDI
-  (`swiftc -O -o build/midi tools/midi.swift`; `build/midi list`,
-  `listen 10 SMK`, `send SMK F0 … F7`).
+  (`swiftc -O -o build/midi tools/midi.swift`). It covers `build/midi
+  list`, `listen 10 SMK` and `send SMK F0 … F7`. `hs SMK hello` sends
+  Hindsight's messages and times their acks.
+- `tools/screen/`: the keyboard's screen rendered on the host, from Open's
+  simulator and this `app/` (below).
 - `tests/`: the host tests.
 - `.github/workflows/build.yml`: CI.
 
@@ -92,28 +100,89 @@ CI builds the Elite firmware twice: on `windows-latest` with Windows
 PowerShell, as `build.bat` does, and under Wine on Linux. It fails unless the two packages
 are the same bytes. That match is what shows the Mac build is right.
 
+## The Pi's protocol
+
+The first proof that the Pi can drive the keyboard: it draws text on the
+screen. `app/hindsight.h` has the full definition.
+
+```
+F0 7D 48 53 01 <seq> <cmd> <payload> F7       48 53 is "HS"; 01 the version
+00 HELLO                                       is this our firmware?
+01 CLEAR   <colour>                            take the screen, fill it
+02 TEXT    <x lo> <x hi> <y lo> <y hi> <scale> <colour> <ASCII...>
+03 RELEASE                                     give the screen back
+ack: F0 7D 48 53 01 <seq> 7F <status> F7      HELLO adds <version> <items>
+     status 0 ok, 1 unknown, 2 malformed, 3 full, 4 released
+the keyboard's own: F0 7D 48 53 01 00 03 F7   HOME gave the screen back
+```
+
+- **Only CLEAR takes the screen.** TEXT while the screen is the keyboard's
+  is answered *released* and changes nothing. So a Pi still updating a
+  counter can't undo a HOME.
+- **TEXT works by place.** TEXT where there's already text replaces it,
+  and TEXT with no text removes it. At least one glyph has to fit.
+- **Limits:** up to 16 items of 40 characters, in seven colours (black,
+  panel, text, dim, accent, green and amber). Lowercase is drawn as
+  capitals, which is the font Open has.
+- **HOME** gives the screen back, and the keyboard sends its own RELEASE
+  to the port that sent the CLEAR. Pressed alone, HOME does nothing else,
+  so the page is the one that was left. With another button held it does
+  its usual job too: PLAY+HOME still stops everything.
+- **Acks:**
+  - every message is acked on its port with its seq, so the Pi can time
+    Pi → screen;
+  - acks are never answered, so an echo can't loop;
+  - send one message at a time and wait for its ack: the mailbox holds
+    one frame, and a second arriving meanwhile is lost. Resend on a
+    timeout; every command can be repeated safely.
+- **The manufacturer ID:** 0x7D is MIDI's non-commercial ID, fine for our
+  own kit but not for a product.
+
+What pass 1 doesn't do yet:
+- While the Pi has the screen, the controls still act on Open's hidden
+  page, and the button LEDs keep showing it.
+- Any change repaints the whole screen. That is bounded at 4 ms of each
+  poll, so it's safe, but a fast counter keeps the LCD busy. Repainting
+  only the changed text is the next step.
+
+## Seeing the screen without a keyboard
+
+```sh
+tools/screen/run.sh                 # tools/screen/pass1.txt
+```
+
+It compiles this `app/` code on Open's simulator (`web/engine`) with the
+host's C compiler, plays a script (send SysEx, wait, press a button, take a
+shot), and writes `build/screen/*.png`. CI does the same and uploads the
+pictures. It fails unless the Pi drew, HOME put back exactly the page that
+was left, and a TEXT after HOME changed nothing.
+
 ## Tests
 
 ```sh
 tests/run.sh
 ```
 
-It checks four things:
+It checks five things:
 
 - the areas the app writes, by compiling `instrument.h`'s asserts and
   printing the areas;
 - that no other file writes Flash;
+- the Pi's protocol: every command, the acks, malformed frames, a full
+  list, a busy port;
 - `flash-diff.py`;
 - that no dump is in the tree.
 
 ## Room for code
 
-The firmware image and the user partition share the flash below 0xFF000,
-and V01 leaves 29 bytes free in the image. Our own SysEx handler, font and
-drawing need space, which comes from one of two places:
+The firmware image and the user partition share the flash below 0xFF000.
+V01 left 29 bytes free in the image. Replacing the workbench's transfer
+protocol with ours took the Elite's image from 453,892 bytes to 450,500,
+which leaves 3,421 bytes. More room comes from one of two places:
 
-- something Open has that Hindsight doesn't need: the sampler's code, an
-  engine, or the factory DX7 voices;
+- something Open has that Hindsight doesn't need. The plan's cost table
+  lists it (step 7 of `docs/plan/the-instrument.md` in hindsight): mostly
+  Open's sound-editing pages and projects;
 - a smaller user partition. `Package.cs` fixes it at 536,576 bytes and the
   SDK validates it, so whether the SDK takes another size is unknown until
   a unit says so.

@@ -34,4 +34,9 @@ ${CC:-cc} -std=c11 -Wall -Werror -DFM1_HOST_TEST \
     "$root/tests/regions_test.c" -o "$out/regions_test"
 "$out/regions_test"
 
+${CC:-cc} -std=c11 -Wall -Wextra -Werror -DFM1_HOST_TEST \
+    -I"$root/app" -I"$root/sdk/include" \
+    "$root/tests/hindsight_test.c" "$root/app/hindsight.c" -o "$out/hindsight_test"
+"$out/hindsight_test"
+
 python3 -I "$root/tests/flash_diff_test.py"
