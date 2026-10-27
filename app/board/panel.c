@@ -72,3 +72,15 @@ void smk37_rgb_service(void)
     JL_IOMAP->CON1&=~BIT(4);JL_SPI1->BAUD=4;
     if(errors==fm1_lcd_timeouts)rgb_dirty=0;
 }
+/* hindsight.h. The ROM looks for this marker in its retained RAM at a reset,
+ * whoever wrote it, and comes up as its download disk: m-bootloader's
+ * rom_download (MIT; docs/SPEC.md §4.2 there). */
+void hindsight_download_mode(void)
+{
+    (void)smk_irq_save();
+    memcpy((void *)(uintptr_t)0x01c7fd80U, "usb_update_mode", 16);
+    __asm__ volatile("csync" ::: "memory");
+    SMK_REG(0x10000U) |= BIT(4);
+    __asm__ volatile("csync" ::: "memory");
+    for (;;) __asm__ volatile("" ::: "memory");
+}

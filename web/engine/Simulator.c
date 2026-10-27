@@ -8,6 +8,7 @@
 #include "audio_output.h"
 #include "fm1_audio_io.h"
 #include "smk37_controls.h"
+#include "hindsight.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -540,3 +541,8 @@ int fm1_bluetooth_audio_read(int16_t *pcm, unsigned frames)
 { return pcm && frames == FM1_BLOCK_FRAMES ? 0 : -1; }
 int fm1_usb_audio_write(const int32_t *pcm, unsigned frames)
 { return pcm && frames == FM1_BLOCK_FRAMES ? 0 : -1; }
+/* hindsight.h: on the unit, a restart into the ROM's download mode; here, a
+ * count the screen harness checks (tools/screen, `downloads`). */
+static unsigned download_requests;
+void hindsight_download_mode(void) { ++download_requests; }
+EXPORT("sim_download_requests") unsigned sim_download_requests(void) { return download_requests; }
