@@ -41,6 +41,34 @@ jobs:
           name: screen
           path: build/screen/*/*.png
 
+  virtual:
+    name: The virtual keyboard (this app/ on Open's simulator, in a browser)
+    runs-on: ubuntu-latest
+    env:
+      WASI_URL: https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-27/wasi-sdk-27.0-x86_64-linux.tar.gz
+      WASI_SHA256: b7d4d944c88503e4f21d84af07ac293e3440b1b6210bfd7fe78e0afd92c23bc2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/wasi-sdk.tar.gz
+          key: wasi-${{ env.WASI_SHA256 }}
+      - name: Fetch and check WASI SDK 27
+        run: |
+          archive="$RUNNER_TEMP/wasi-sdk.tar.gz"
+          [ -f "$archive" ] || curl -fL --retry 3 -o "$archive" "$WASI_URL"
+          echo "$WASI_SHA256  $archive" | sha256sum -c -
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+      - name: Build the workbench with no package
+        shell: pwsh
+        run: |
+          $env:FM1_WASI_SDK = Join-Path $env:RUNNER_TEMP 'wasi-sdk-27.0-x86_64-linux'
+          ./tools/Build-Web.ps1 -LocalPreview
+      - uses: actions/upload-artifact@v4
+        with:
+          name: virtual-keyboard
+          path: build/preview/index.html
+
   windows:
     name: Windows (M-VAVE's platform)
     runs-on: windows-latest

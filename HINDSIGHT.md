@@ -96,6 +96,18 @@ The first run does three things, in order:
 `Build.ps1` then checks the 22 toolchain files against `sdk/manifest.json`.
 The package lands in `build/elite/generated/SMK37_ELITE_OPEN.fwsc`.
 
+Two more modes build Open's workbench, with WASI SDK 27 (fetched and checked
+the same way):
+
+- `tools/container/build.sh elite web` builds the simulator alone, in about
+  40 s, with no JieLi toolchain: this `app/` running in a browser on a whole
+  SMK-37 panel, at `build/preview/index.html`. Serve that directory over
+  HTTP to play it.
+- `tools/container/build.sh elite package` builds the firmware and the
+  workbench with it inside: the installer page, at
+  `build/official-web/elite/SMK37-Open-Source.html`. The page links this
+  commit's archive as its source, so build it from a pushed, clean tree.
+
 CI builds the Elite firmware twice: on `windows-latest` with Windows
 PowerShell, as `build.bat` does, and under Wine on Linux. It fails unless the two packages
 are the same bytes. That match is what shows the Mac build is right.
