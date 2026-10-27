@@ -110,10 +110,12 @@ jobs:
         with:
           path: ${{ runner.temp }}/smk37-toolchain/2.5.3.exe
           key: jieli-${{ env.TOOLCHAIN_SHA256 }}
-      - name: Build the Elite firmware in the container
+      # The package mode builds the same firmware, and the installer with it.
+      - name: Build the Elite firmware and its installer in the container
         env:
           SMK37_TOOLCHAIN_CACHE: ${{ runner.temp }}/smk37-toolchain
-        run: tools/container/build.sh elite
+          FM1_SOURCE_URL: https://github.com/${{ github.repository }}/archive/${{ github.event.pull_request.head.sha || github.sha }}.tar.gz
+        run: tools/container/build.sh elite package
       - uses: actions/upload-artifact@v4
         with:
           name: wine-elite
@@ -121,6 +123,10 @@ jobs:
             build/elite/generated/SMK37_ELITE_OPEN.fwsc
             build/elite/*.json
             build/elite/sdk.map
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-elite
+          path: build/official-web/elite/SMK37-Open-Source.html
 
   compare:
     name: The two builds are the same bytes
