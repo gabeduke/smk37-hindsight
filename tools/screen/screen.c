@@ -12,6 +12,7 @@
  *   button|key|pad|pressure|knob|fader <id> <value>   any panel event
  *   expect <hex bytes...>         the keyboard sent this since the last expect
  *   unsent <hex bytes...>         the keyboard didn't send this since the last expect
+ *   downloads <n>                 the keyboard has asked for download mode n times
  *   shot <name>                   save the screen as <out>/<name>.rgb565
  *
  * Everything the keyboard sends is printed as it arrives. A failed expect
@@ -30,6 +31,7 @@ int sim_midi(unsigned bytes);
 void sim_midi_capture(unsigned enable);
 unsigned sim_midi_output(void);
 int sim_smk37(unsigned kind, unsigned id, int value);
+unsigned sim_download_requests(void);
 /* smk37_controls.h's kinds. */
 enum { SMK37_BUTTON, SMK37_KEY, SMK37_PRESSURE, SMK37_PAD, SMK37_ENCODER, SMK37_FADER = 7 };
 
@@ -114,6 +116,9 @@ int main(int argc, char **argv)
             if (word[0] == 'e' && !found) { printf("  EXPECTED, NOT SENT: %s\n", want); ++failures; }
             if (word[0] == 'u' && found) { printf("  SENT, NOT EXPECTED: %s\n", want); ++failures; }
             if (word[0] == 'e') seen_count = 0;
+        } else if (!strcmp(word, "downloads")) {
+            unsigned want = (unsigned)atoi(rest), got = sim_download_requests();
+            if (got != want) { printf("  DOWNLOAD MODE ASKED FOR %u TIMES, NOT %u\n", got, want); ++failures; }
         } else if (!strcmp(word, "shot")) {
             char path[1024];
             snprintf(path, sizeof path, "%s/%s.rgb565", argv[2], rest);

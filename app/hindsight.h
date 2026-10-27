@@ -87,6 +87,11 @@ unsigned hindsight_active(void);
 void hindsight_release(void);
 /* HOME held: offer the screen to the Pi, if it hasn't got it. */
 void hindsight_offer(void);
+/* M-Flasher's soft key, F0 22 24 35 7D F7, answered as M-VAVE's stock
+ * firmware answers it: restart into the ROM's USB download mode
+ * (4C4A:8057), where M-Flasher reads and writes the flash. The board's
+ * (app/board/panel.c); on the unit it never returns. */
+void hindsight_download_mode(void);
 /* How many presses and turns the panel has had, HOME's own aside: keys,
  * pads, buttons and encoders (the master knob too). A held HOME offers the
  * screen only if this didn't change while it was held. */

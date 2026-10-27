@@ -31,7 +31,8 @@ void fm1_app_sysex(const uint8_t *m, size_t n)
         return;
     if (!hindsight_frame(m, n) &&
         !(n == 6 && m[1] == 0x7f && (m[2] == 0 || m[2] == 0x7f) && m[3] == 6) &&
-        !(n == 163 && m[1] == 0x43 && m[2] < 16 && m[3] == 0 && m[4] == 1 && m[5] == 27))
+        !(n == 163 && m[1] == 0x43 && m[2] < 16 && m[3] == 0 && m[4] == 1 && m[5] == 27) &&
+        !(n == 6 && m[1] == 0x22 && m[2] == 0x24 && m[3] == 0x35 && m[4] == 0x7d))
         return;
     incoming.source = (uint8_t)fm1_midi_input_source();
     memcpy(incoming.bytes, m, n);
@@ -54,6 +55,13 @@ void groove_transfer_poll(void)
     for (unsigned i = 1; i + 1 < n; ++i)
         if (message[i] >= 128)
             goto discard;
+    if (message[1] == 0x22) {
+        /* M-Flasher's soft key (hindsight.h). */
+        barrier();
+        incoming.length = 0;
+        hindsight_download_mode();
+        return;
+    }
     if (message[1] == 0x7f) {
         unsigned code = message[4];
         barrier();
