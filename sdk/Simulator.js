@@ -46,6 +46,8 @@
             if (!message.data || message.data.length>1024) throw Error('MIDI 数据无效');
             new Uint8Array(c.memory.buffer,c.sim_file(),message.data.length).set(message.data);
             result=c.sim_midi(message.data.length); break;
+          // Hindsight's link (see the page's openLink): keep what the keyboard sends.
+          case 'capture': c.sim_midi_capture(message.on?1:0); break;
           case 'export':
             result=message.timbre?c.sim_timbre_export():message.patch?c.sim_patch_export():c.sim_export();
             if (!result) data=new Uint8Array(c.memory.buffer,c.sim_file(),message.timbre?223:message.patch?156:4264).slice();
@@ -100,6 +102,9 @@
       projectRevision(){return this.c.sim_edit_revision()+':'+this.c.sim_project_revision();}
       frame(force=false) {
         const c=this.c,message={type:'frame',state:new Uint8Array(c.memory.buffer,c.sim_state(),225).slice()};
+        // What the keyboard sent on USB since the last frame, while capture is on.
+        for(let out;(out=c.sim_midi_output());)
+          if((out>>8)===1)(message.midiOut??=[]).push(new Uint8Array(c.memory.buffer,c.sim_file(),out&255).slice());
         const name=new Uint8Array(c.memory.buffer,c.sim_project_name(),12),position=c.sim_preset_position();
         const targets=c.sim_lcd_targets(),count=c.sim_lcd_count();
         const labels=new Uint8Array(c.memory.buffer,c.sim_knobs(),128);
@@ -337,9 +342,27 @@
     }
   }
 
+  // The link to Hindsight, for the virtual keyboard (hindsight's
+  // docs/plan/the-instrument.md): with ?link=<ws url>, what the keyboard
+  // sends on USB goes to the socket, and what comes back arrives as USB MIDI.
+  // One MIDI message per binary frame, each way. A lost socket is tried again
+  // every two seconds; <html data-link> says open or closed.
+  const linkUrl=new URLSearchParams(location.search).get('link');
+  let link;
+  function openLink() {
+    const socket=new WebSocket(linkUrl);socket.binaryType='arraybuffer';
+    socket.onopen=()=>{link=socket;send('capture',{on:true});document.documentElement.dataset.link='open';};
+    socket.onmessage=event=>{if(event.data instanceof ArrayBuffer)send('midi',{data:new Uint8Array(event.data)});};
+    socket.onclose=()=>{
+      if(link===socket){link=undefined;send('capture',{on:false});}
+      document.documentElement.dataset.link='closed';setTimeout(openLink,2000);
+    };
+  }
+
   function receive(message) {
     if(message.id){const item=pending.get(message.id);if(item){clearTimeout(item.timer);pending.delete(message.id);message.error?item.reject(Error(message.error)):item.resolve(message.data);}return;}
     if(message.error){say(message.error);return;}
+    if(link&&message.midiOut)for(const bytes of message.midiOut)link.send(bytes);
     if(message.type!=='frame')return;
     const before=state,oldInstrument=instrumentState;state=message.state;
     instrumentState=message.instruments;
@@ -644,6 +667,7 @@
       });
       $('sim-factory').value=workspace?.factory?String(workspace.slot):'';availability();
       say('已就绪，点琴键或播放即可试听。');globalThis.SMK37Boot?.ready();
+      if(linkUrl)openLink();
       const blockFrames=preview.c.sim_block_frames();
       let last=performance.now(),frames=0;
       setInterval(()=>{

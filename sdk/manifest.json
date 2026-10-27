@@ -61,7 +61,7 @@
                   "sdk/lib/libcompiler_rt.a":  "c2116a5e2557bbfd1181a5f4db28d271f2d3df3b47743ab1d4311323c8f8e251",
                   "sdk/Package.cs":  "1830bd7a3a0043f9d1df42d3903561601fa1618416e75448d2b721209af5b04d",
                   "sdk/Samples.js":  "b6ac9cba6b30fadb1ed34526586369b8eac9695c262253e4874aa48a3db4c26d",
-                  "sdk/Simulator.js":  "b36cad9a39ff9242d7d81510454555a406f445b602bfab6768e540c2c415e0f0",
+                  "sdk/Simulator.js":  "1a8f8d32fac46de4b6df2f4d36a50f5e614a9f4b70a99e2b5a49551cb157ac5d",
                   "sdk/tools/pack/boot-config.bin":  "f0eb786eb54b263b8ad9c93f92151f6b721f4d050d98385d8fdd5ebeed12a51e",
                   "sdk/tools/pack/cfg_tool.bin":  "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
                   "sdk/tools/pack/ota.bin":  "ef1f2db89b011fa53e71df363f0122de0ea896618c53fb53e8da676322004541",
