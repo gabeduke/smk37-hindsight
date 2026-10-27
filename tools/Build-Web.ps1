@@ -9,6 +9,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $utf8 = New-Object Text.UTF8Encoding $false
+# Off Windows (the Linux container in tools/container), FM1_WASI_SDK names an
+# extracted Linux WASI SDK 27, whose compiler has no .exe.
+$onWindows = [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT
 function Hash([string]$file) { (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() }
 function Build-Simulator {
     $out = Join-Path $root 'build/web'
@@ -40,6 +43,7 @@ function Build-Simulator {
     $wasm = Join-Path $out 'simulator.wasm'
     $metadata = Join-Path $out 'simulator.json'
     if (!$WasiSdk) {
+        if (!$onWindows) { throw 'Set FM1_WASI_SDK to an extracted WASI SDK 27 directory.' }
         $cache = Join-Path $root 'build/tools'
         $WasiSdk = Join-Path $cache 'wasi-sdk-27.0-x86_64-windows'
         if (!(Test-Path -LiteralPath (Join-Path $WasiSdk 'bin/clang.exe'))) {
@@ -56,12 +60,12 @@ function Build-Simulator {
         }
     }
     $WasiSdk = [IO.Path]::GetFullPath($WasiSdk)
-    $compiler = Join-Path $WasiSdk 'bin/clang.exe'
+    $compiler = Join-Path $WasiSdk $(if ($onWindows) { 'bin/clang.exe' } else { 'bin/clang' })
     if (!(Test-Path -LiteralPath $compiler) -or !(Test-Path -LiteralPath (Join-Path $WasiSdk 'share/wasi-sysroot'))) {
         throw 'Set FM1_WASI_SDK to an extracted WASI SDK 27 directory.'
     }
     # Switching SDKs or changing their files must invalidate the build cache.
-    $scanPath = if ($WasiSdk.StartsWith('\\?\')) { $WasiSdk } elseif ($WasiSdk.StartsWith('\\')) {
+    $scanPath = if (!$onWindows -or $WasiSdk.StartsWith('\\?\')) { $WasiSdk } elseif ($WasiSdk.StartsWith('\\')) {
         '\\?\UNC\' + $WasiSdk.TrimStart('\')
     } else { '\\?\' + $WasiSdk }
     $toolStamp = Digest @($WasiSdk; Get-ChildItem -LiteralPath $scanPath -Recurse -File | Sort-Object FullName |
