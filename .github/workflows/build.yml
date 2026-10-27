@@ -19,17 +19,19 @@ env:
 
 jobs:
   host-tests:
-    name: Host tests (the write areas, the protocol, flash-diff, no dumps; the screen)
+    name: Host tests (the write areas, the protocol, flash-diff, no dumps; the screen, the surface)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: tests/run.sh
-      - name: Render the screen script on Open's simulator
+      - name: Play the screen and surface scripts on Open's simulator
         env:
           CC: clang
         run: |
-          tools/screen/run.sh
-          cd build/screen
+          # The surface's every expect must hold (run.sh fails otherwise).
+          tools/screen/run.sh tools/screen/surface.txt
+          tools/screen/run.sh tools/screen/pass1.txt
+          cd build/screen/pass1
           # The Pi drew; HOME gave back exactly the page it left; a TEXT after that changed nothing.
           ! cmp -s 1-open-home.png 2-pi-screen.png
           cmp 1-open-home.png 4-after-home.png
@@ -37,7 +39,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: screen
-          path: build/screen/*.png
+          path: build/screen/*/*.png
 
   windows:
     name: Windows (M-VAVE's platform)

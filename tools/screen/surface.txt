@@ -1,0 +1,89 @@
+# Pass 2: while the Pi has the screen, the panel speaks to it in plain MIDI
+# (app/hindsight.h). Every expect must hold, or the run fails.
+boot
+wait 1500
+pad 0 100                         # before the Pi: Open's pad, nothing for the Pi
+pad 0 0
+clear 0
+expect F0 7D 48 53 01 01 7F 00 F7
+text 8 8 2 2 SURFACE
+wait 100
+pad 3 100                         # pad 4: note 39 on channel 10
+expect 99 27 64
+pressure 3 64
+expect A9 27 40
+sysex F0 7D 48 53 01 30 04 00 7E F7     # KNOB: encoder 1 stands at 126
+expect F0 7D 48 53 01 30 7F 00 F7
+knob 0 5                          # turns up past the end: 127
+expect BF 15 7F
+knob 1 3                          # encoder 2 from 0: CC 22 = 3
+expect BF 16 03
+fader 2 90                        # fader 3: CC 30
+expect BF 1E 5A
+button 16 1                       # PLAY: note 16 on channel 16
+expect 9F 10 7F
+button 16 0
+expect 8F 10 00
+press 2                           # HOME gives the screen back, and says so
+release 2
+wait 100
+expect F0 7D 48 53 01 00 03 F7
+pad 3 0                           # the Pi's pad is let go to the Pi
+expect 89 27 00
+wait 300
+shot surface-after-home
+# HOME held for a second on the keyboard's own screen offers it to the Pi
+# as it is let go (OFFER); anything else pressed or turned meanwhile keeps
+# HOME Open's modifier.
+press 2                           # let go within the second: nothing
+wait 600
+release 2
+wait 100
+unsent F0 7D 48 53 01 00 05 F7
+press 2                           # PLAY tapped while HOME is held: nothing
+wait 100
+button 16 1
+wait 100
+button 16 0
+wait 1200
+release 2
+wait 100
+unsent F0 7D 48 53 01 00 05 F7
+press 2                           # a key played while HOME is held: nothing
+wait 200
+key 3 100
+key 3 0
+wait 1000
+release 2
+wait 100
+unsent F0 7D 48 53 01 00 05 F7
+press 2                           # an encoder after the first second (HOME+PRESETS): nothing
+wait 1200
+knob 0 1
+release 2
+wait 100
+unsent F0 7D 48 53 01 00 05 F7
+press 0                           # SHIFT+HOME: nothing
+press 2
+wait 1200
+release 2
+release 0
+wait 100
+unsent F0 7D 48 53 01 00 05 F7
+press 2                           # held a second, let go alone: one OFFER, on the release
+wait 1200
+unsent F0 7D 48 53 01 00 05 F7
+release 2
+wait 100
+expect F0 7D 48 53 01 00 05 F7
+clear 0                           # the Pi takes it
+expect F0 7D 48 53 01 03 7F 00 F7
+pad 3 100                         # and has the pads again
+expect 99 27 64
+pad 3 0
+press 2                           # HOME while the Pi has it gives it back; held on, it offers nothing
+wait 1500
+release 2
+wait 100
+unsent F0 7D 48 53 01 00 05 F7
+expect F0 7D 48 53 01 00 03 F7

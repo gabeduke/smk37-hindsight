@@ -9,9 +9,14 @@
  *   text <x> <y> <scale> <colour> <words...>   send Hindsight's TEXT
  *   clear <colour>                send Hindsight's CLEAR
  *   press <button> / release <button>   an SMK-37 button by physical id (HOME is 2)
+ *   button|key|pad|pressure|knob|fader <id> <value>   any panel event
+ *   expect <hex bytes...>         the keyboard sent this since the last expect
+ *   unsent <hex bytes...>         the keyboard didn't send this since the last expect
  *   shot <name>                   save the screen as <out>/<name>.rgb565
  *
- * What the keyboard sends (acks, its RELEASE) is printed as it arrives. */
+ * Everything the keyboard sends is printed as it arrives. A failed expect
+ * makes the run exit 1. */
+#include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,18 +30,23 @@ int sim_midi(unsigned bytes);
 void sim_midi_capture(unsigned enable);
 unsigned sim_midi_output(void);
 int sim_smk37(unsigned kind, unsigned id, int value);
-enum { SMK37_BUTTON = 0 };
+/* smk37_controls.h's kinds. */
+enum { SMK37_BUTTON, SMK37_KEY, SMK37_PRESSURE, SMK37_PAD, SMK37_ENCODER, SMK37_FADER = 7 };
 
-static unsigned seq;
+/* What the keyboard sent since the last expect: the latest 128, without the
+ * clock and active sensing it sends all along. */
+static unsigned seq, failures, seen_count;
+static char seen[128][64];
 static void acks(void)
 {
     for (unsigned r; (r = sim_midi_output());) {
-        unsigned n = r & 255U;
+        unsigned n = r & 255U, at = 0;
         const uint8_t *b = sim_file();
-        if (n < 4 || b[0] != 0xf0) continue;
-        printf("  from the keyboard:");
-        for (unsigned i = 0; i < n; ++i) printf(" %02X", b[i]);
-        printf("\n");
+        if (n == 1 && b[0] >= 0xf8) continue;
+        char hex[64] = "";
+        for (unsigned i = 0; i < n && at + 4 < sizeof hex; ++i) at += (unsigned)snprintf(hex + at, sizeof hex - at, i ? " %02X" : "%02X", b[i]);
+        printf("  from the keyboard (port %u): %s\n", r >> 8, hex);
+        strcpy(seen[seen_count++ % 128], hex);
     }
 }
 static void run(unsigned ms)
@@ -66,7 +76,10 @@ int main(int argc, char **argv)
         rest[strcspn(rest, "\r\n")] = 0;
         for (size_t end = strlen(rest); end && (rest[end - 1] == ' ' || rest[end - 1] == '\t');) rest[--end] = 0;
         printf("%s %s\n", word, rest);
-        if (!strcmp(word, "boot")) { sim_boot(1); sim_midi_capture(1); }
+        static const char *const kinds[] = {"button", "key", "pressure", "pad", "knob", "", "", "fader"};
+        int kind = -1;
+        for (int k = 0; k < 8; ++k) if (*kinds[k] && !strcmp(word, kinds[k])) kind = k;
+        if (!strcmp(word, "boot")) { sim_boot(1); sim_midi_capture(1); seen_count = 0; }
         else if (!strcmp(word, "wait")) run((unsigned)atoi(rest));
         else if (!strcmp(word, "sysex")) {
             uint8_t m[256]; unsigned n = 0, byte; int at = 0;
@@ -86,9 +99,21 @@ int main(int argc, char **argv)
             memcpy(m + 13, rest + at, n);
             m[13 + n] = 0xf7;
             send(m, 14 + n);
-        } else if (!strcmp(word, "press") || !strcmp(word, "release")) {
-            if (sim_smk37(SMK37_BUTTON, (unsigned)atoi(rest), word[0] == 'p')) printf("  refused by the simulator\n");
+        } else if (!strcmp(word, "press") || !strcmp(word, "release") || kind >= 0) {
+            unsigned id = 0; int value = 0;
+            if (kind < 0) { kind = SMK37_BUTTON; id = (unsigned)atoi(rest); value = word[0] == 'p'; }
+            else if (sscanf(rest, "%u %d", &id, &value) != 2) { printf("  bad control line\n"); continue; }
+            if (sim_smk37((unsigned)kind, id, value)) printf("  refused by the simulator\n");
             acks();
+        } else if (!strcmp(word, "expect") || !strcmp(word, "unsent")) {
+            char want[64] = ""; unsigned at = 0, byte; int used_hex = 0;
+            for (char *p = rest; at + 4 < sizeof want && sscanf(p, "%x %n", &byte, &used_hex) == 1; p += used_hex)
+                at += (unsigned)snprintf(want + at, sizeof want - at, at ? " %02X" : "%02X", byte);
+            unsigned found = 0;
+            for (unsigned i = 0; i < seen_count && i < 128 && !found; ++i) found = !strcmp(seen[i], want);
+            if (word[0] == 'e' && !found) { printf("  EXPECTED, NOT SENT: %s\n", want); ++failures; }
+            if (word[0] == 'u' && found) { printf("  SENT, NOT EXPECTED: %s\n", want); ++failures; }
+            if (word[0] == 'e') seen_count = 0;
         } else if (!strcmp(word, "shot")) {
             char path[1024];
             snprintf(path, sizeof path, "%s/%s.rgb565", argv[2], rest);
@@ -98,5 +123,6 @@ int main(int argc, char **argv)
         } else printf("  unknown command\n");
     }
     fclose(script);
-    return 0;
+    if (failures) printf("%u expectations failed\n", failures);
+    return failures ? 1 : 0;
 }

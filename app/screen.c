@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
 /* Modified 2026-10-26 for Hindsight: while the Pi has the screen
  * (hindsight.h), it is drawn from the Pi's model instead of a page; HOME
- * gives it back. */
+ * gives it back, and HOME held for a second offers it to the Pi again. */
 #include "instrument.h"
 #include "fm_patch.h"
 #include "version.h"
@@ -1649,6 +1649,10 @@ static __attribute__((noinline, cold, minsize)) void draw_page_body(const struct
 enum { HINDSIGHT_PAGE = 0x100 };
 static const uint16_t hindsight_palette[HS_COLOURS] = {BACK, PANEL, TEXT, DIM, ACCENT, GREEN, AMBER};
 static unsigned hindsight_shown, hindsight_seen;
+/* A HOME press that may offer the screen when it is let go: when it began,
+ * and the panel's touches then. */
+static unsigned home_hold, home_touches;
+static uint32_t home_ms;
 static void hindsight_draw(void)
 {
     if (!paint_rendering) {
@@ -2811,10 +2815,23 @@ void groove_screen_control(void)
                 return;
         }
     }
+    /* HOME held for a second on the keyboard's own screen offers the screen
+     * to the Pi as it is let go. Pressed with SHIFT or another button, or
+     * with anything pressed or turned while it is held, it is Open's
+     * modifier instead, as it always was, and offers nothing. */
+    if (controls.buttons & ~previous_buttons & BUTTON(HOME)) {
+        home_hold = controls.buttons == BUTTON(HOME) && !smk37_shift() && !hindsight_active();
+        home_ms = now;
+        home_touches = hindsight_touches();
+    } else if (home_hold && !(controls.buttons & BUTTON(HOME))) {
+        home_hold = 0;
+        if (now - home_ms >= 1000U && hindsight_touches() == home_touches) hindsight_offer();
+    }
     /* HOME takes the screen back from the Pi. Pressed alone, it does nothing
-     * else, so the page is the one that was left; with another button held
-     * (PLAY+HOME stops everything) it does what it always does. Either way
-     * round, the next frame repaints all of it. */
+     * else, so the page is the one that was left; with a button held that
+     * Open still has (pressed before the Pi took the screen: PLAY+HOME stops
+     * everything) it does what it always does. Either way round, the next
+     * frame repaints all of it. */
     if (hindsight_active() && (controls.buttons & ~previous_buttons & BUTTON(HOME))) {
         hindsight_release();
         if (controls.buttons == BUTTON(HOME)) previous_buttons |= BUTTON(HOME);

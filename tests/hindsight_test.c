@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "hindsight.h"
+#include "smk37_controls.h"
 #include "fm1.h"
 
 static uint8_t sent[32];
@@ -148,6 +149,20 @@ int main(void)
     /* The keyboard's RELEASE, echoed back, is answered once and ends there. */
     CHECK(message(0, HS_RELEASE, 0) == HS_OK && !hindsight_active());
 
+    /* HOME held offers the screen to the port that last took it, only while
+     * the screen is the keyboard's; an OFFER sent to the keyboard is UNKNOWN. */
+    sent_length = 0;
+    hindsight_offer();
+    const uint8_t offer[] = {0xf0, 0x7d, 'H', 'S', 1, 0, HS_OFFER, 0xf7};
+    CHECK(sent_port == FM1_MIDI_BLE && sent_length == sizeof offer && !memcmp(sent, offer, sizeof offer));
+    CHECK(!hindsight_active());
+    hindsight_message(clear_ble, sizeof clear_ble, FM1_MIDI_BLE);
+    sent_length = 0;
+    hindsight_offer();
+    CHECK(sent_length == 0 && hindsight_active());
+    hindsight_release();
+    CHECK(message(0, HS_OFFER, 0) == HS_UNKNOWN && !hindsight_active());
+
     /* A busy port is retried, then given up on. */
     busy = 1; sends = 0; clock_ms = 1000;
     CHECK(message(6, HS_HELLO, 0) == -1 && sends == 1);
@@ -164,6 +179,71 @@ int main(void)
     clock_ms = 2700; hindsight_poll();
     CHECK(sends == 5);
     busy = 0;
+
+    /* The surface. Before the Pi has the screen, everything is Open's. */
+    CHECK(!hindsight_active());
+    CHECK(hindsight_surface(SMK37_PAD, 0, 100, 0) == 0);           /* Open's press... */
+    CHECK(hindsight_surface(SMK37_ENCODER, 0, 1, 0) == 0);
+    uint8_t clear_usb[] = {0xf0, 0x7d, 'H', 'S', 1, 20, HS_CLEAR, 0, 0xf7};
+    hindsight_message(clear_usb, sizeof clear_usb, FM1_MIDI_USB);
+    CHECK(hindsight_surface(SMK37_PAD, 0, 0, 0) == 0);             /* ...and Open's release */
+    CHECK(hindsight_surface(SMK37_PRESSURE, 0, 50, 0) == 0);
+
+    /* Pads: notes 36-51 on channel 10, poly aftertouch while held. */
+    sent_length = 0;
+    CHECK(hindsight_surface(SMK37_PAD, 3, 100, 0) == 1);
+    CHECK(sent_length == 3 && sent[0] == 0x99 && sent[1] == 39 && sent[2] == 100 && sent_port == FM1_MIDI_USB);
+    CHECK(hindsight_surface(SMK37_PRESSURE, 3, 64, 0) == 1 && sent[0] == 0xa9 && sent[1] == 39 && sent[2] == 64);
+    CHECK(hindsight_surface(SMK37_PAD, 15, 200, 0) == 1 && sent[1] == 51 && sent[2] == 127); /* clamped */
+
+    /* Buttons: note <id> on channel 16; HOME and FADER BANK stay the keyboard's. */
+    CHECK(hindsight_surface(SMK37_BUTTON, 16, 1, 0) == 1 && sent[0] == 0x9f && sent[1] == 16 && sent[2] == 127);
+    CHECK(hindsight_surface(SMK37_BUTTON, 16, 0, 0) == 1 && sent[0] == 0x8f && sent[1] == 16 && sent[2] == 0);
+    CHECK(hindsight_surface(SMK37_BUTTON, 2, 1, 0) == 0 && hindsight_surface(SMK37_BUTTON, 12, 1, 0) == 0);
+    CHECK(hindsight_surface(SMK37_BUTTON, 1, 1, 0) == 0);
+
+    /* Encoders: CC 21-27 on channel 16, the knob's value, which KNOB sets. */
+    CHECK(message(21, HS_KNOB, 2, 0, 120) == HS_OK);
+    CHECK(hindsight_surface(SMK37_ENCODER, 0, 3, 0) == 1 && sent[0] == 0xbf && sent[1] == 21 && sent[2] == 123);
+    CHECK(hindsight_surface(SMK37_ENCODER, 0, 10, 0) == 1 && sent[2] == 127);
+    sent_length = 0;
+    CHECK(hindsight_surface(SMK37_ENCODER, 0, 1, 0) == 1 && sent_length == 0); /* at the end: nothing to say */
+    CHECK(message(23, HS_KNOB, 2, 6, 3) == HS_OK);
+    CHECK(hindsight_surface(SMK37_ENCODER, 6, -5, 0) == 1 && sent[1] == 27 && sent[2] == 0);
+    CHECK(message(22, HS_KNOB, 2, HS_KNOBS, 0) == HS_MALFORMED);
+    CHECK(message(22, HS_KNOB, 1, 0) == HS_MALFORMED);
+
+    /* Faders: CC 28-31 on channel 16, 32-35 in the second bank. */
+    CHECK(hindsight_surface(SMK37_FADER, 2, 90, 0) == 1 && sent[0] == 0xbf && sent[1] == 30 && sent[2] == 90);
+    CHECK(hindsight_surface(SMK37_FADER, 2, 90, 1) == 1 && sent[1] == 34);
+
+    /* The keys, the wheels, the pedal and the master knob play the synth. */
+    CHECK(hindsight_surface(SMK37_KEY, 10, 100, 0) == 0);
+    CHECK(hindsight_surface(SMK37_FADER, 4, 70, 0) == 0);
+    CHECK(hindsight_surface(SMK37_PEDAL, 0, 127, 0) == 0);
+    CHECK(hindsight_surface(SMK37_ENCODER, 7, 1, 0) == 0);
+
+    /* HOME: what the Pi was pressing is still let go to the Pi; new presses are Open's. */
+    hindsight_release();
+    CHECK(hindsight_surface(SMK37_PRESSURE, 3, 30, 0) == 1 && sent[0] == 0xa9);
+    CHECK(hindsight_surface(SMK37_PAD, 3, 0, 0) == 1 && sent[0] == 0x89 && sent[1] == 39 && sent[2] == 0);
+    CHECK(hindsight_surface(SMK37_PAD, 15, 0, 0) == 1 && sent[1] == 51);
+    CHECK(hindsight_surface(SMK37_PAD, 3, 100, 0) == 0);
+    CHECK(hindsight_surface(SMK37_ENCODER, 0, 1, 0) == 0 && hindsight_surface(SMK37_FADER, 0, 1, 0) == 0);
+
+    /* A held HOME's touches: presses and turns, HOME's own and releases aside. */
+    unsigned touches = hindsight_touches();
+    hindsight_surface(SMK37_BUTTON, 2, 1, 0);
+    hindsight_surface(SMK37_BUTTON, 12, 1, 0);
+    hindsight_surface(SMK37_KEY, 3, 0, 0);
+    hindsight_surface(SMK37_FADER, 1, 90, 0);
+    hindsight_surface(SMK37_PRESSURE, 3, 40, 0);
+    CHECK(hindsight_touches() == touches);
+    hindsight_surface(SMK37_KEY, 3, 100, 0);
+    hindsight_surface(SMK37_PAD, 4, 100, 0);
+    hindsight_surface(SMK37_BUTTON, 0, 1, 0); /* SHIFT */
+    hindsight_surface(SMK37_ENCODER, 7, -1, 0); /* the master knob */
+    CHECK(hindsight_touches() == touches + 4);
 
     /* Only three ports. */
     sent_length = 0;

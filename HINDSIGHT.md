@@ -102,8 +102,9 @@ are the same bytes. That match is what shows the Mac build is right.
 
 ## The Pi's protocol
 
-The first proof that the Pi can drive the keyboard: it draws text on the
-screen. `app/hindsight.h` has the full definition.
+The Pi drives the keyboard: it draws text on the screen, and while it has
+the screen the panel speaks to it. `app/hindsight.h` has the full
+definition.
 
 ```
 F0 7D 48 53 01 <seq> <cmd> <payload> F7       48 53 is "HS"; 01 the version
@@ -111,9 +112,12 @@ F0 7D 48 53 01 <seq> <cmd> <payload> F7       48 53 is "HS"; 01 the version
 01 CLEAR   <colour>                            take the screen, fill it
 02 TEXT    <x lo> <x hi> <y lo> <y hi> <scale> <colour> <ASCII...>
 03 RELEASE                                     give the screen back
+04 KNOB    <knob 0-6> <value 0-127>            where an encoder stands
 ack: F0 7D 48 53 01 <seq> 7F <status> F7      HELLO adds <version> <items>
      status 0 ok, 1 unknown, 2 malformed, 3 full, 4 released
-the keyboard's own: F0 7D 48 53 01 00 03 F7   HOME gave the screen back
+the keyboard's own: F0 7D 48 53 01 00 03 F7   RELEASE: HOME gave the screen back
+                    F0 7D 48 53 01 00 05 F7   OFFER: HOME held, the Pi may take it
+the Pi answers neither; sent to the keyboard, OFFER is answered unknown
 ```
 
 - **Only CLEAR takes the screen.** TEXT while the screen is the keyboard's
@@ -126,8 +130,18 @@ the keyboard's own: F0 7D 48 53 01 00 03 F7   HOME gave the screen back
   capitals, which is the font Open has.
 - **HOME** gives the screen back, and the keyboard sends its own RELEASE
   to the port that sent the CLEAR. Pressed alone, HOME does nothing else,
-  so the page is the one that was left. With another button held it does
-  its usual job too: PLAY+HOME still stops everything.
+  so the page is the one that was left. With a button held that Open still
+  has, one pressed before the Pi took the screen, it does its usual job
+  too: PLAY+HOME then stops everything.
+- **HOME held for a second** on the keyboard's own screen sends OFFER as
+  it is let go, to the port that last sent a CLEAR (USB, before any). The
+  Pi takes the screen with a CLEAR if it wants it.
+  - It offers nothing when HOME is pressed with SHIFT or another button,
+    or when anything is pressed or turned while it is held: a key, a pad,
+    a button, an encoder or the master knob. HOME stays Open's modifier,
+    as it always was, however long it is held (HOME+PRESETS, HOME+SEQ).
+  - The press still does what HOME does on Open's page (PRESETS, or back),
+    so the screen goes back to that page later.
 - **Acks:**
   - every message is acked on its port with its seq, so the Pi can time
     Pi → screen;
@@ -138,9 +152,38 @@ the keyboard's own: F0 7D 48 53 01 00 03 F7   HOME gave the screen back
 - **The manufacturer ID:** 0x7D is MIDI's non-commercial ID, fine for our
   own kit but not for a product.
 
-What pass 1 doesn't do yet:
-- While the Pi has the screen, the controls still act on Open's hidden
-  page, and the button LEDs keep showing it.
+### The surface
+
+While the Pi has the screen, the panel sends it plain MIDI, on the port
+that sent the CLEAR, instead of acting on Open's hidden page:
+
+| Control | Sends |
+|---|---|
+| Pads 1–16 | notes 36–51 on channel 10 with their velocity, and poly aftertouch while held |
+| Encoders 1–7 | CC 21–27 on channel 16: the knob's value, 0–127 |
+| Faders 1–4 | CC 28–31 on channel 16; 32–35 with FADER BANK lit |
+| Buttons | note *id* on channel 16: 127 when pressed, note off when let go |
+
+- **Pads** are what Hindsight's SMK-37 profile already binds: Play mode's
+  pads, then CATCH and GRAB. CC 21–24 are its tape mods.
+- **Encoders send absolute values.** An encoder moves its knob's value by
+  its detents, clamped at 0 and 127. KNOB sets that value, so the Pi can
+  put it where its own is and a turn never jumps. The plan said relative:
+  absolute is what Hindsight's knob bindings take.
+- **Button ids** are the panel's (`smk37_controls.c`): 0 SHIFT, 3 SAVE,
+  4 OCT−, 5 OCT+, 6 ARP, 7 PAD/STEP, 8 SCL, 9 ENV, 10 GLO, 11 BLUETOOTH,
+  13 EDIT, 14 FX, 15 SEQ, 16 PLAY, 17 REC. HOME (2 and 12) and FADER BANK
+  (1) stay the keyboard's.
+- **What stays the synth's:** the keys, the wheels, the pedal and the
+  master knob play the keyboard's synth as always.
+- **Who gets a release:** a pad or button belongs to whoever had its
+  press, and its release goes there too. A pad held through HOME is let go
+  to the Pi, so nothing sticks.
+- **Full queue:** a full MIDI queue drops a message, as Open's own MIDI
+  out does.
+
+What isn't done yet:
+- The pad and button LEDs keep showing Open's state.
 - Any change repaints the whole screen. That is bounded at 4 ms of each
   poll, so it's safe, but a fast counter keeps the LCD busy. Repainting
   only the changed text is the next step.
@@ -148,14 +191,22 @@ What pass 1 doesn't do yet:
 ## Seeing the screen without a keyboard
 
 ```sh
-tools/screen/run.sh                 # tools/screen/pass1.txt
+tools/screen/run.sh                         # tools/screen/pass1.txt
+tools/screen/run.sh tools/screen/surface.txt
 ```
 
 It compiles this `app/` code on Open's simulator (`web/engine`) with the
-host's C compiler, plays a script (send SysEx, wait, press a button, take a
-shot), and writes `build/screen/*.png`. CI does the same and uploads the
-pictures. It fails unless the Pi drew, HOME put back exactly the page that
-was left, and a TEXT after HOME changed nothing.
+host's C compiler and plays a script. A script sends SysEx, waits, presses
+pads, keys, encoders, faders and buttons, expects what the keyboard sends
+(or that it sent nothing of the kind), and takes shots, which land in `build/screen/<script>/`. CI plays both
+scripts and uploads the pictures. It fails unless:
+- every expect held;
+- the Pi drew;
+- HOME put back exactly the page that was left;
+- a TEXT after HOME changed nothing;
+- HOME held a second and let go offered the screen, once and only on the
+  release; HOME let go sooner, with SHIFT, with PLAY, a key or an encoder
+  meanwhile, or pressed while the Pi had the screen offered nothing.
 
 ## Tests
 
@@ -169,7 +220,8 @@ It checks five things:
   printing the areas;
 - that no other file writes Flash;
 - the Pi's protocol: every command, the acks, malformed frames, a full
-  list, a busy port;
+  list, a busy port, the surface (each control, ownership across HOME,
+  the clamps) and OFFER;
 - `flash-diff.py`;
 - that no dump is in the tree.
 
@@ -198,5 +250,6 @@ tools/flash-diff.py first.bin after.bin --expect 0x4000-0x7C000
 It fails if anything changed in the unit's own regions, and, given
 `--expect`, if anything changed outside the ranges that write was meant to
 change. `--accept-unit START-END` allows one exact range inside them. It
-exists for m-bootloader's calibration copy (`0xFF000-0xFF23C`), if Gabe
-accepts that write.
+exists for m-bootloader's calibration copy, which Gabe accepted on
+2026-10-26: after installing m-bootloader, pass
+`--accept-unit 0xFF000-0xFF23C`.
