@@ -133,13 +133,15 @@ int main(void)
     CHECK(!hindsight_frame(hello, 7));
 
     /* HELLO is answered with the version and the room for items, its seq
-     * echoed, in the version it was asked in: version 2 and 96 either way. */
+     * echoed, in the version it was asked in: version 2, 96 and what it does
+     * beyond, either way. */
     hindsight_message(hello, sizeof hello, FM1_MIDI_USB);
-    const uint8_t hello_ack[] = {0xf0, 0x7d, 'H', 'S', 1, 5, 0x7f, HS_OK, 2, 96, 0xf7};
+    const uint8_t hello_ack[] = {0xf0, 0x7d, 'H', 'S', 1, 5, 0x7f, HS_OK, 2, 96, HS_FEATURES, 0xf7};
+    CHECK(HS_FEATURES == 7);
     CHECK(HS_VERSION == 2 && HS_ITEMS == 96);
     CHECK(sent_length == sizeof hello_ack && !memcmp(sent, hello_ack, sizeof hello_ack) && sent_port == FM1_MIDI_USB);
     hindsight_message(version2, sizeof version2, FM1_MIDI_USB);
-    const uint8_t hello_ack2[] = {0xf0, 0x7d, 'H', 'S', 2, 5, 0x7f, HS_OK, 2, 96, 0xf7};
+    const uint8_t hello_ack2[] = {0xf0, 0x7d, 'H', 'S', 2, 5, 0x7f, HS_OK, 2, 96, HS_FEATURES, 0xf7};
     CHECK(sent_length == sizeof hello_ack2 && !memcmp(sent, hello_ack2, sizeof hello_ack2));
     CHECK(!hindsight_active());
 
@@ -457,6 +459,56 @@ int main(void)
         CHECK(box(0, 0, 1, 1, 1) == HS_RELEASED && bar(0, 0, 1, 1, 1, 1, 1) == HS_RELEASED);
         CHECK(message(56, HS_CLEAR, 1, 0) == HS_OK && hindsight_pad(4, 1) == 1 && hindsight_button(16) == -1);
         CHECK(led(sizeof play, play) == HS_OK && message(57, HS_RELEASE, 0) == HS_OK && hindsight_button(16) == -1);
+    }
+
+    /* Local echo: a pad pressed is half-lit at once, until the Pi sets it or
+     * HS_ECHO_MS passes; a knob turned writes its value where KNOB said. */
+    {
+        const uint8_t rest[] = {2, 23, 12, 0}, half[] = {2, 70, 35, 0}, white[] = {3, 127, 127, 127};
+        clock_ms = 1000;
+        CHECK(message(58, HS_CLEAR, 1, 0) == HS_OK && led(sizeof rest, rest) == HS_OK && led(sizeof white, white) == HS_OK);
+        CHECK(hindsight_pad(2, 0) == 0x090500);
+        CHECK(hindsight_surface(SMK37_PAD, 2, 100, 0) == 1 && hindsight_pad(2, 0) == 0x1b0f00); /* three times */
+        CHECK(hindsight_surface(SMK37_PAD, 3, 100, 0) == 1 && hindsight_pad(3, 0) == 0x303030); /* at most full */
+        CHECK(hindsight_pad(5, 7) == 7);                                    /* not the Pi's: Open's */
+        clock_ms = 1000 + HS_ECHO_MS - 1; CHECK(hindsight_pad(2, 0) == 0x1b0f00);
+        CHECK(led(sizeof half, half) == HS_OK && hindsight_pad(2, 0) == 0x1a0d00); /* the Pi's answer */
+        CHECK(hindsight_surface(SMK37_PAD, 2, 0, 0) == 1 && hindsight_surface(SMK37_PAD, 3, 0, 0) == 1);
+        clock_ms = 2000;
+        CHECK(hindsight_surface(SMK37_PAD, 2, 90, 0) == 1 && hindsight_pad(2, 0) == 0x302700);
+        clock_ms = 2000 + HS_ECHO_MS; CHECK(hindsight_pad(2, 0) == 0x1a0d00); /* no answer: put back */
+        CHECK(hindsight_surface(SMK37_PAD, 2, 0, 0) == 1);
+        hindsight_release();
+        CHECK(hindsight_surface(SMK37_PAD, 2, 90, 0) == 0 && hindsight_pad(2, 4) == 4);
+        CHECK(hindsight_surface(SMK37_PAD, 2, 0, 0) == 0);
+
+        /* The knob: its value's TEXT at (64, 186) and its BAR at (64, 202). */
+        CHECK(message(59, HS_CLEAR, 1, 0) == HS_OK);
+        CHECK(text2(64, 186, 2, 2, 0, "40") == HS_OK && bar(64, 202, 52, 2, 40, 3, 1) == HS_OK);
+        for (unsigned b = 0; b < HS_BANDS; ++b) (void)hindsight_damage(b);
+        CHECK(message(60, HS_KNOB, 10, 1, 40, 64, 0, 58, 1, 64, 0, 74, 1) == HS_OK);
+        unsigned before = hindsight_revision();
+        CHECK(hindsight_surface(SMK37_ENCODER, 1, 60, 0) == 1 && sent[1] == 22 && sent[2] == 100);
+        CHECK(!strcmp(hindsight_item(0)->text, "100") && hindsight_item(0)->w == 36 && hindsight_item(1)->value == 100);
+        CHECK(hindsight_revision() != before && hindsight_damage(11) == (64 | (64 + 36) << 8) &&
+              hindsight_damage(12) == (64 | (64 + 52) << 8) && !hindsight_damage(10));
+        CHECK(hindsight_surface(SMK37_ENCODER, 1, -95, 0) == 1 && !strcmp(hindsight_item(0)->text, "5") &&
+              hindsight_item(0)->w == 12 && hindsight_item(1)->value == 5);
+        /* Only where it said: a knob with no places echoes nothing. */
+        CHECK(message(61, HS_KNOB, 2, 2, 9) == HS_OK);
+        before = hindsight_revision();
+        CHECK(hindsight_surface(SMK37_ENCODER, 2, 1, 0) == 1 && hindsight_revision() == before);
+        CHECK(message(62, HS_KNOB, 10, 1, 40, 112, 1, 0, 0, 0, 0) == HS_MALFORMED);   /* x 240 */
+        CHECK(message(62, HS_KNOB, 9, 1, 40, 64, 0, 58, 1, 64, 0, 74) == HS_MALFORMED);
+        /* Giving the screen back forgets the places. */
+        hindsight_release();
+        CHECK(message(63, HS_CLEAR, 1, 0) == HS_OK && text2(64, 186, 2, 2, 0, "40") == HS_OK);
+        CHECK(hindsight_surface(SMK37_ENCODER, 1, 1, 0) == 1 && !strcmp(hindsight_item(0)->text, "40"));
+
+        /* Open's clock and transport don't reach the port that has the screen. */
+        CHECK(hindsight_quiet(FM1_MIDI_USB) && !hindsight_quiet(FM1_MIDI_USB + 1));
+        hindsight_release();
+        CHECK(!hindsight_quiet(FM1_MIDI_USB));
     }
 
     /* BATCH: several commands, one ack, which says how many were done. */

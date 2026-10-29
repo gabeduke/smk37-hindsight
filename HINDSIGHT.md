@@ -126,6 +126,8 @@ F0 7D 48 53 <v> <seq> <cmd> <payload> F7      48 53 is "HS"; <v> 01 or 02
                                                <back> in version 2 only
 03 RELEASE                                     give the screen back
 04 KNOB    <knob 0-6> <value 0-127>            where an encoder stands
+           [<x lo> <x hi> <y lo> <y hi> <bar x lo> <bar x hi> <bar y lo> <bar y hi>]
+                                               and where its value is drawn
 version 2 only:
 06 BOX     <x lo> <x hi> <y lo> <y hi> <w lo> <w hi> <h lo> <h hi> <colour>
 07 BAR     <x lo> <x hi> <y lo> <y hi> <w lo> <w hi> <h lo> <h hi>
@@ -134,7 +136,8 @@ version 2 only:
 08 LED     <16 + button id> <state>            0 off, 1 on, 2 blinking
 09 BATCH   <cmd> <n> <n bytes> <cmd> <n> ...   01-08, as if each sent alone
 ack: F0 7D 48 53 <v> <seq> 7F <status> F7     in the version it was sent in
-     HELLO adds 02 60 (version 2, 96 items); BATCH adds <done lo> <done hi>
+     HELLO adds 02 60 07 (version 2, 96 items, the features below);
+     BATCH adds <done lo> <done hi>
      status 0 ok, 1 unknown, 2 malformed, 3 full, 4 released
 the keyboard's own: F0 7D 48 53 01 00 03 F7   RELEASE: HOME gave the screen back
                     F0 7D 48 53 01 00 05 F7   OFFER: HOME held, the Pi may take it
@@ -196,6 +199,27 @@ the Pi answers neither; sent to the keyboard, OFFER is answered unknown
     as it always was, however long it is held (HOME+PRESETS, HOME+SEQ).
   - The press still does what HOME does on Open's page (PRESETS, or back),
     so the screen goes back to that page later.
+- **Local echo** (HELLO's features: 1 pads, 2 knobs, 4 the quiet clock), so
+  a touch answers on the keyboard before the Pi can:
+  - a pad pressed shows at once at three times the light the Pi set it,
+    each colour at most full: its rest (0.18 of its colour) becomes its
+    half (0.55). It lasts until the Pi sets that pad again or 300 ms
+    pass (`HS_ECHO_MS`), so the Pi confirms it, or puts it back, by
+    setting the pad after every press;
+  - KNOB with ten bytes also says where the knob's value is drawn: the
+    TEXT at (x, y) and the BAR at (bar x, bar y). A turn then writes the
+    value into both, as decimal digits and the bar's value, in their own
+    style, and the Pi draws the cell again after. Send the places only
+    when the cell shows the knob's value as its number; giving the screen
+    back forgets them.
+- **The quiet clock:** while the Pi has the screen, the port it took it
+  from gets none of Open's clock or transport (F8, FA, FB, FC, F2). A
+  busy link made `midi_router.c`'s recovery send MIDI Stop at every screen
+  take, which stopped the Pi's tape.
+- **The pads' chain** shares SPI1 with the LCD, and a pad's light is sent
+  only when it changes, so one sent wrong stayed wrong. While the Pi has
+  the pads, the whole chain is sent again every 500 ms
+  (`app/board/panel.c`).
 - **Acks:**
   - every message is acked on its port with its seq, so the Pi can time
     Pi → screen;

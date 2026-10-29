@@ -16,6 +16,8 @@ static unsigned rgb_dirty=0xffff;
 static unsigned led_modes=~0U;
 /* The buttons whose lights the Pi set at the last read (hindsight.h). */
 static uint32_t pi_buttons;
+/* When the pads' chain was last sent whole while the Pi has the screen. */
+static uint32_t pi_pads_ms;
 static const uint8_t rgb_map[16]={0,15,14,13,12,11,10,9,1,2,3,4,5,6,7,8};
 /* PH8 is an encoder input on both boards, with no fitted TRS MIDI RX. */
 uint8_t fm1_io_trs_midi_enabled(void) {return 0;}
@@ -42,6 +44,9 @@ void fm1_controls_read(struct fm1_controls *state)
     if(changed&1)smk37_led(1,bank);
     if(changed&2)smk37_led(7,pad);
     led_modes=modes;
+    /* The chain shares SPI1 with the LCD, and a pad sent wrong stays wrong
+     * until it changes: while the Pi has the pads, send them every 500 ms. */
+    if(hindsight_active() && fm1_millis()-pi_pads_ms>=500U){pi_pads_ms=fm1_millis();rgb_dirty=0xffff;}
     for(unsigned i=0;i<16;++i) {
         unsigned key=smk37_screen_pad_key(i);
         unsigned on=key<27 && (virtual_leds&(1U<<key));
