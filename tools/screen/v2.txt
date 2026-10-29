@@ -4,9 +4,9 @@
 boot
 wait 1500
 sysex F0 7D 48 53 01 01 00 F7              # HELLO in version 1: version 2, 96 items
-expect F0 7D 48 53 01 01 7F 00 02 60 F7
+expect F0 7D 48 53 01 01 7F 00 02 60 07 F7
 sysex F0 7D 48 53 02 02 00 F7              # and in version 2, answered in version 2
-expect F0 7D 48 53 02 02 7F 00 02 60 F7
+expect F0 7D 48 53 02 02 7F 00 02 60 07 F7
 # Version 1 as it always was: no BOX, seven colours, TEXT on CLEAR's colour.
 clear 1
 expect F0 7D 48 53 01 01 7F 00 F7

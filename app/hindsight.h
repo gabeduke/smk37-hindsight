@@ -9,6 +9,9 @@
  *              puts text at (x, y), replacing what was there; no text removes it
  *   03 RELEASE                                     give the screen back
  *   04 KNOB    <knob 0-6> <value 0-127>            where an encoder stands
+ *              [<x lo> <x hi> <y lo> <y hi> <bar x lo> <bar x hi> <bar y lo> <bar y hi>]
+ *              and, if the Pi draws the value as its number, where: a turn
+ *              then writes it into the TEXT and the BAR there at once
  *   version 2 only:
  *   06 BOX     <x lo> <x hi> <y lo> <y hi> <w lo> <w hi> <h lo> <h hi> <colour>
  *              fills w by h at (x, y), replacing the box there; w or h 0 removes it
@@ -50,8 +53,9 @@
  * on the port it came from with its own version byte, and acks are never
  * answered:
  *
- *   F0 7D 48 53 <v> <seq> 7F <status> F7          HELLO adds <version> <items>,
- *                                                  02 60: version 2, 96 items
+ *   F0 7D 48 53 <v> <seq> 7F <status> F7          HELLO adds <version> <items>
+ *                                                  <features>, 02 60 07: version 2,
+ *                                                  96 items, HS_FEATURES
  *                                                  BATCH adds <done lo> <done hi>
  *
  * A BATCH stops at its first command that isn't OK, and answers that
@@ -82,6 +86,15 @@
  * it covers, between the columns it covers: an item the place it took and
  * the place it takes, a CLEAR the whole screen. An item sent again as it
  * is repaints nothing.
+ *
+ * Local echo, so a touch answers before the Pi can (HS_FEATURES): a pad
+ * pressed shows at once at three times the light the Pi set it (its rest,
+ * 0.18 of its colour, becomes its half, 0.55) until the Pi sets that pad
+ * again or HS_ECHO_MS passes; an encoder turned writes its value into the
+ * TEXT and the BAR its KNOB named. The Pi confirms after: it sets the pad
+ * and draws the knob's cell again, whatever it decided. While the Pi has
+ * the screen, the port that has it gets none of Open's clock or transport
+ * (F8, FA, FB, FC, F2): a Stop there would stop the tape.
  *
  * The surface: while the Pi has the screen, the panel speaks to it instead
  * of Open's hidden page, in plain MIDI to the port that sent the CLEAR:
@@ -115,6 +128,9 @@ enum { HS_V1_COLOURS = 7, HS_PADS = 16, HS_LED_BUTTON = 16, HS_BUTTONS = 18 };
 /* A pad's full level on the LEDs: Open's brightest (smk37_pad_color). */
 enum { HS_PAD_FULL = 48 };
 enum { HS_BANDS = 15, HS_BAND_ROWS = 16 };
+/* What this firmware does beyond version 2's first build, in HELLO's ack. */
+enum { HS_ECHO_PADS = 1, HS_ECHO_KNOBS = 2, HS_QUIET_CLOCK = 4,
+       HS_FEATURES = HS_ECHO_PADS | HS_ECHO_KNOBS | HS_QUIET_CLOCK, HS_ECHO_MS = 300 };
 enum { HS_PAD_CHANNEL = 9, HS_PAD_NOTE = 36, HS_SURFACE_CHANNEL = 15, HS_KNOB_CC = 21, HS_FADER_CC = 28 };
 enum { HS_OK = 0, HS_UNKNOWN = 1, HS_MALFORMED = 2, HS_FULL = 3, HS_RELEASED = 4 };
 
@@ -137,6 +153,9 @@ int hindsight_surface(unsigned kind, unsigned id, int value, unsigned fader_bank
 
 /* The model screen.c draws. The revision changes whenever it does. */
 unsigned hindsight_active(void);
+/* midi_router.c: 1 while the Pi has the screen and port is the one it took
+ * it from, which then gets none of Open's clock or transport. */
+unsigned hindsight_quiet(unsigned port);
 /* HOME: give the screen back, and tell the Pi. */
 void hindsight_release(void);
 /* HOME held: offer the screen to the Pi, if it hasn't got it. */
@@ -157,7 +176,8 @@ unsigned hindsight_revision(void);
 unsigned hindsight_damage(unsigned band);
 unsigned hindsight_background(void);
 /* The panel's lights (app/board/panel.c): a pad's RGB, 0xRRGGBB, or open
- * (the keyboard's own) if the Pi hasn't set it; a button's light now,
+ * (the keyboard's own) if the Pi hasn't set it, brighter while it echoes a
+ * press; a button's light now,
  * 0 or 1, or -1 if the Pi hasn't set it. */
 uint32_t hindsight_pad(unsigned pad, uint32_t open);
 int hindsight_button(unsigned id);

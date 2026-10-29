@@ -1,5 +1,8 @@
-/* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception
+ * Modified 2026-10 for Hindsight: no clock or transport to the Pi's port
+ * while it has the screen (hindsight.h). */
 #include "instrument.h"
+#include "hindsight.h"
 #include "fm1_engine_control.h"
 #include <string.h>
 #ifdef FM1_HOST_TEST
@@ -208,6 +211,8 @@ static void deliver(unsigned port, unsigned owner, const uint8_t *m)
     struct output *o = &output[port];
     unsigned ch = m[0] & 15U, type = m[0] & 0xf0U, note = m[1], bit = 1U << (note & 7U);
     if (o->recover || o->stop) return;
+    /* Open's clock and transport would move the Pi's tape (hindsight.h). */
+    if (m[0] >= 0xf0 && owner < THRU_OWNER && hindsight_quiet(port)) return;
     if (m[0] < 0xf0) o->channels |= (uint16_t)(1U << ch);
     if (type == 0x90 || type == 0x80) {
         uint8_t *held = &o->held[owner][note >> 3];
@@ -268,7 +273,8 @@ void groove_midi_poll(void)
         struct output *o = &output[p];
         if (o->stop) {
             const uint8_t stop = 0xfc;
-            if (fm1_midi_send_port(p, &stop, 1)) continue;
+            /* A send the Pi's frames kept busy would stop its tape. */
+            if (!hindsight_quiet(p) && fm1_midi_send_port(p, &stop, 1)) continue;
             o->stop = 0;
         }
         /* Recovery is bounded and independent per port. Retain desired pedal
