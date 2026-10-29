@@ -2,7 +2,8 @@
  * Copyright (c) 2026 珠海笙科智能科技有限公司 (M-VAVE).
  * Connect the FM1 control API to the board scanner.
  * Modified 2026-10 for Hindsight: the soft key's download mode, and the
- * Pi's lights while it has the screen (hindsight.h). */
+ * Pi's lights while it has the screen (hindsight.h), and a longer reset
+ * before the pads' chain. */
 #include "smk37_hw.h"
 #include "fm1_lcd_hw.h"
 #include "lcd.inc"
@@ -10,7 +11,13 @@
 
 static uint32_t virtual_leds;
 static uint16_t button_leds;
-static uint8_t rgb_buffer[420] __attribute__((aligned(4)));
+/* The pads' chain: RGB_RESET bytes held low, then 24 a pad. Open held it low
+ * for 36 (about 45 us), under the reset these LEDs need (50-280 us by part),
+ * so a glitch as SPI1 switched over from the LCD came through as a stray bit
+ * at the chain's front: pad 1 wrong and every pad after it shifted, until
+ * the next transfer (on the unit, 2026-10-29). */
+enum { RGB_RESET = 256 };
+static uint8_t rgb_buffer[RGB_RESET + 24 * 16] __attribute__((aligned(4)));
 static uint32_t rgb_colors[16];
 static unsigned rgb_dirty=0xffff;
 static unsigned led_modes=~0U;
@@ -84,7 +91,7 @@ void smk37_rgb_service(void)
         unsigned rgb=rgb_colors[i],grb=((rgb&0xff00)<<8)|((rgb>>8)&0xff00)|(rgb&255);
         for(unsigned n=0;n<6;++n) {
             uint32_t word=nibble[(grb>>(20-4*n))&15];
-            memcpy(rgb_buffer+36+24*rgb_map[i]+4*n,&word,4);
+            memcpy(rgb_buffer+RGB_RESET+24*rgb_map[i]+4*n,&word,4);
         }
     }
     /* One task owns SPI1: finish LCD, keep CS high during RGB DMA, restore. */
