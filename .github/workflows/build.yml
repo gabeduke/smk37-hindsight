@@ -34,6 +34,14 @@ jobs:
           # A change repaints only its bands, and leaves what a full repaint draws.
           tools/screen/run.sh tools/screen/repaint.txt
           cmp build/screen/repaint/2-partial.png build/screen/repaint/3-full.png
+          # Version 2: BOX, BAR, TEXT's background, the palette, LED and BATCH,
+          # each pixel, band and light checked.
+          tools/screen/run.sh tools/screen/v2.txt
+          # The design's six screens: drawn whole, and as only what changed, the same.
+          tools/screen/run.sh tools/screen/prototype.txt
+          for shot in 2-filter-turned 3-punch-in 4-refused 5-pads-held 6-mixer; do
+            cmp build/screen/prototype/$shot.png build/screen/prototype/$shot-changed.png
+          done
           cd build/screen/pass1
           # The Pi drew; HOME gave back exactly the page it left; a TEXT after that changed nothing.
           ! cmp -s 1-open-home.png 2-pi-screen.png

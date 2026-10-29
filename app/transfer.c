@@ -17,7 +17,9 @@
 #else
 #define TRANSFER_WORD volatile unsigned
 #endif
-static struct { uint8_t bytes[192], source; TRANSFER_WORD length; } incoming;
+/* Room for the longest frame the SDK delivers, so one BATCH can hold a
+ * whole screen of the Pi's (hindsight.h). */
+static struct { uint8_t bytes[HS_FRAME], source; TRANSFER_WORD length; } incoming;
 static void barrier(void)
 {
 #ifndef FM1_HOST_TEST

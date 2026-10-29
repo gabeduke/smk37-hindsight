@@ -1642,14 +1642,17 @@ static __attribute__((noinline, cold, minsize)) void draw_page_body(const struct
                            : "SELECT PAGE  HOME TRACKS";
     hint_draw(hint);
 }
-/* The Pi's screen: its text items on its background, in the palette's
- * order (hindsight.h). A change repaints only the bands it covers, between
- * the columns it covers (hindsight_damage); the first frame after the Pi
- * takes the screen, and a lost DMA band (shown_page = ~0U), repaint all of
- * it, like any page. Between changes draw() idles. */
+/* The Pi's screen: its items on its background, in their order, in the
+ * palette's colours (hindsight.h). A change repaints only the bands it
+ * covers, between the columns it covers (hindsight_damage); the first frame
+ * after the Pi takes the screen, and a lost DMA band (shown_page = ~0U),
+ * repaint all of it, like any page. Between changes draw() idles. */
 enum { HINDSIGHT_PAGE = 0x100 };
 _Static_assert(HS_BAND_ROWS == PAINT_ROWS && HS_BANDS == PAINT_BANDS, "the Pi's damage is in the painter's bands");
-static const uint16_t hindsight_palette[HS_COLOURS] = {BACK, PANEL, TEXT, DIM, ACCENT, GREEN, AMBER};
+static const uint16_t hindsight_palette[HS_COLOURS] = {
+    BACK, PANEL, TEXT, DIM, ACCENT, GREEN, AMBER,
+    0x3cbb, 0x2d94, 0xdd02, 0xe2b3, /* the tracks, T1-T4 */
+    0xf1e6, 0xfbe5, 0xa39e, 0xffff, 0x0945}; /* red, orange, violet, white, deep */
 static unsigned hindsight_seen;
 /* A HOME press that may offer the screen when it is let go: when it began,
  * and the panel's touches then. */
@@ -1671,8 +1674,17 @@ static void hindsight_draw(void)
     uint16_t back = hindsight_palette[hindsight_background()];
     paint_fill(0, 0, FM1_SCREEN_WIDTH, FM1_SCREEN_HEIGHT, back);
     const struct hs_item *item;
-    for (unsigned i = 0; (item = hindsight_item(i)); ++i)
-        text(item->x, item->y, item->text, item->scale, hindsight_palette[item->colour], back);
+    for (unsigned i = 0; (item = hindsight_item(i)); ++i) {
+        uint16_t colour = hindsight_palette[item->colour], behind = hindsight_palette[item->back];
+        if (item->kind == HS_TEXT_AT) {
+            text(item->x, item->y, item->text, item->scale, colour, behind);
+            continue;
+        }
+        /* A BAR, or a BOX: a BAR at 127. */
+        unsigned lit = (item->w * item->value + 63U) / 127U;
+        paint_fill(item->x, item->y, lit, item->h, colour);
+        paint_fill(item->x + lit, item->y, item->w - lit, item->h, behind);
+    }
 }
 static void draw_page(const struct fm1_ble_status *ble)
 {

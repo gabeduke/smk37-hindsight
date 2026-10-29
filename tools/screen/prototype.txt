@@ -1,0 +1,996 @@
+# Pass 5: the screens of the surface's design, drawn by version 2 (app/hindsight.h).
+# Generated from the layout in the prototype the design was agreed on
+# (hindsight's docs/plan/the-instrument.md, step 7, The surface, designed),
+# with its contact sheet's six states. Each is drawn whole, from a CLEAR, in
+# BATCHes; then the same six again as the Pi would send them, each only
+# what changed from the one before. CI checks the two of each are the same
+# picture; the pixels checked are the prototype's own drawing of it.
+boot
+wait 1500
+version 2
+strict
+# At rest: 82 items
+batch
+clear 0
+end
+batch
+text 6 7 2 2 0 TAPE_3
+text 186 11 1 3 0 132_BPM
+text 4 34 4 2 0 012.1
+text 124 48 2 3 0 .1
+box 162 34 74 28 1
+text 175 41 2 2 1 STOP
+text 6 66 1 8 0 ARM_T2
+box 0 76 240 1 1
+text 6 80 1 4 0 FX_PADS
+text 132 80 1 3 0 SHIFT:_MIXER_PAGE
+box 1 90 28 14 1
+text 9 94 1 7 1 T1
+box 31 90 28 14 1
+text 39 94 1 8 1 T2
+box 61 90 28 14 1
+text 69 94 1 9 1 T3
+box 91 90 28 14 1
+text 99 94 1 10 1 T4
+box 121 90 28 14 1
+text 126 94 1 12 1 BRK
+box 151 90 28 14 1
+text 156 94 1 12 1 REV
+box 181 90 28 14 1
+text 186 94 1 12 1 CHP
+box 211 90 28 14 1
+text 216 94 1 12 1 STP
+box 1 106 28 14 1
+text 6 110 1 13 1 HLF
+box 31 106 28 14 1
+text 36 110 1 13 1 DBL
+box 61 106 28 14 1
+text 66 110 1 4 1 ROL
+box 91 106 28 14 1
+text 96 110 1 4 1 FLT
+box 121 106 28 14 1
+text 126 110 1 4 1 ECH
+box 151 106 28 14 1
+text 156 110 1 4 1 CRS
+box 181 106 28 14 1
+text 186 110 1 14 1 CAT
+box 211 106 28 14 1
+text 216 110 1 14 1 GRB
+text 6 136 1 7 0 1
+bar 16 137 180 5 0 7 1
+box 156 136 2 7 3
+text 210 136 1 3 0 __+0
+text 6 145 1 8 0 2
+bar 16 146 180 5 0 8 1
+box 142 145 2 7 3
+text 210 145 1 3 0 __-1
+text 6 154 1 9 0 3
+bar 16 155 180 5 0 9 1
+box 173 154 2 7 3
+text 210 154 1 3 0 __+1
+text 6 163 1 10 0 4
+bar 16 164 180 5 0 10 1
+box 123 163 2 7 3
+text 210 163 1 3 0 __-2
+box 0 172 240 1 1
+text 4 176 1 3 0 DRIVE
+text 4 186 2 2 0 40
+bar 4 202 52 2 40 3 1
+text 64 176 1 3 0 AGE
+text 64 186 2 2 0 12
+bar 64 202 52 2 12 3 1
+text 124 176 1 3 0 FILTER
+text 124 186 2 2 0 88
+bar 124 202 52 2 88 3 1
+text 184 176 1 3 0 CRUSH
+text 184 186 2 2 0 0
+bar 184 202 52 2 0 3 1
+text 4 208 1 3 0 ECHO
+text 4 218 2 2 0 30
+bar 4 234 52 2 30 3 1
+text 64 208 1 3 0 WOW
+text 64 218 2 2 0 6
+bar 64 234 52 2 6 3 1
+text 124 208 1 3 0 FLUTTER
+text 124 218 2 2 0 4
+bar 124 234 52 2 4 3 1
+text 184 208 1 3 0 SCRUB
+text 184 218 2 2 0 <_>
+end
+wait 200
+shot 1-at-rest
+pixel 2 2 0000
+pixel 14 12 0000
+pixel 10 40 0000
+pixel 165 36 18E3
+pixel 200 50 EF5D
+pixel 2 92 18E3
+pixel 92 91 18E3
+pixel 122 91 18E3
+pixel 62 107 18E3
+pixel 92 107 18E3
+pixel 222 107 18E3
+pixel 20 138 18E3
+pixel 100 147 18E3
+pixel 17 165 18E3
+pixel 8 180 738E
+pixel 10 220 EF5D
+pixel 190 236 0000
+pixel 236 236 0000
+# Playing, FILTER turned: 82 items
+batch
+clear 0
+end
+batch
+text 6 7 2 2 0 TAPE_3
+text 186 11 1 3 0 132_BPM
+text 4 34 4 2 0 025.2
+text 124 48 2 3 0 .3
+box 162 34 74 28 5
+text 175 41 2 0 5 PLAY
+text 6 66 1 8 0 ARM_T2
+box 0 76 240 1 1
+text 6 80 1 4 0 FX_PADS
+text 132 80 1 3 0 SHIFT:_MIXER_PAGE
+box 1 90 28 14 1
+text 9 94 1 7 1 T1
+box 31 90 28 14 1
+text 39 94 1 8 1 T2
+box 61 90 28 14 1
+text 69 94 1 9 1 T3
+box 91 90 28 14 1
+text 99 94 1 10 1 T4
+box 121 90 28 14 1
+text 126 94 1 12 1 BRK
+box 151 90 28 14 1
+text 156 94 1 12 1 REV
+box 181 90 28 14 1
+text 186 94 1 12 1 CHP
+box 211 90 28 14 1
+text 216 94 1 12 1 STP
+box 1 106 28 14 1
+text 6 110 1 13 1 HLF
+box 31 106 28 14 1
+text 36 110 1 13 1 DBL
+box 61 106 28 14 1
+text 66 110 1 4 1 ROL
+box 91 106 28 14 1
+text 96 110 1 4 1 FLT
+box 121 106 28 14 1
+text 126 110 1 4 1 ECH
+box 151 106 28 14 1
+text 156 110 1 4 1 CRS
+box 181 106 28 14 1
+text 186 110 1 14 1 CAT
+box 211 106 28 14 1
+text 216 110 1 14 1 GRB
+text 6 136 1 7 0 1
+bar 16 137 180 5 89 7 1
+box 156 136 2 7 3
+text 210 136 1 3 0 __+0
+text 6 145 1 8 0 2
+bar 16 146 180 5 64 8 1
+box 142 145 2 7 3
+text 210 145 1 3 0 __-1
+text 6 154 1 9 0 3
+bar 16 155 180 5 104 9 1
+box 173 154 2 7 3
+text 210 154 1 3 0 __+1
+text 6 163 1 10 0 4
+bar 16 164 180 5 51 10 1
+box 123 163 2 7 3
+text 210 163 1 3 0 __-2
+box 0 172 240 1 1
+text 4 176 1 3 0 DRIVE
+text 4 186 2 2 0 40
+bar 4 202 52 2 40 3 1
+text 64 176 1 3 0 AGE
+text 64 186 2 2 0 12
+bar 64 202 52 2 12 3 1
+text 124 176 1 14 0 FILTER
+text 124 186 2 4 0 104
+bar 124 202 52 2 104 4 1
+text 184 176 1 3 0 CRUSH
+text 184 186 2 2 0 0
+bar 184 202 52 2 0 3 1
+text 4 208 1 3 0 ECHO
+text 4 218 2 2 0 30
+bar 4 234 52 2 30 3 1
+text 64 208 1 3 0 WOW
+text 64 218 2 2 0 6
+bar 64 234 52 2 6 3 1
+text 124 208 1 3 0 FLUTTER
+text 124 218 2 2 0 4
+bar 124 234 52 2 4 3 1
+text 184 208 1 3 0 SCRUB
+text 184 218 2 2 0 <_>
+end
+wait 200
+shot 2-filter-turned
+pixel 2 2 0000
+pixel 14 12 0000
+pixel 10 40 0000
+pixel 165 36 07E0
+pixel 200 50 0000
+pixel 2 92 18E3
+pixel 92 91 18E3
+pixel 122 91 18E3
+pixel 62 107 18E3
+pixel 92 107 18E3
+pixel 222 107 18E3
+pixel 20 138 3CBB
+pixel 100 147 2D94
+pixel 17 165 E2B3
+pixel 8 180 738E
+pixel 10 220 EF5D
+pixel 190 236 0000
+pixel 236 236 0000
+# PUNCH IN: 84 items
+batch
+clear 0
+end
+batch
+text 6 7 2 2 0 TAPE_3
+text 186 11 1 3 0 132_BPM
+text 4 34 4 2 0 033.2
+text 124 48 2 3 0 .1
+box 162 34 74 28 11
+text 181 41 2 14 11 REC
+text 6 66 1 8 0 ARM_T2
+box 0 76 240 1 1
+text 6 80 1 4 0 FX_PADS
+text 132 80 1 3 0 SHIFT:_MIXER_PAGE
+box 1 90 28 14 1
+text 9 94 1 7 1 T1
+box 31 90 28 14 1
+text 39 94 1 8 1 T2
+box 61 90 28 14 1
+text 69 94 1 9 1 T3
+box 91 90 28 14 1
+text 99 94 1 10 1 T4
+box 121 90 28 14 1
+text 126 94 1 12 1 BRK
+box 151 90 28 14 1
+text 156 94 1 12 1 REV
+box 181 90 28 14 1
+text 186 94 1 12 1 CHP
+box 211 90 28 14 1
+text 216 94 1 12 1 STP
+box 1 106 28 14 1
+text 6 110 1 13 1 HLF
+box 31 106 28 14 1
+text 36 110 1 13 1 DBL
+box 61 106 28 14 1
+text 66 110 1 4 1 ROL
+box 91 106 28 14 1
+text 96 110 1 4 1 FLT
+box 121 106 28 14 1
+text 126 110 1 4 1 ECH
+box 151 106 28 14 1
+text 156 110 1 4 1 CRS
+box 181 106 28 14 1
+text 186 110 1 14 1 CAT
+box 211 106 28 14 1
+text 216 110 1 14 1 GRB
+text 6 136 1 7 0 1
+bar 16 137 180 5 76 7 1
+box 156 136 2 7 3
+text 210 136 1 3 0 __+0
+text 6 145 1 8 0 2
+bar 16 146 180 5 102 8 1
+box 142 145 2 7 3
+text 210 145 1 3 0 __-1
+text 6 154 1 9 0 3
+bar 16 155 180 5 64 9 1
+box 173 154 2 7 3
+text 210 154 1 3 0 __+1
+text 6 163 1 10 0 4
+bar 16 164 180 5 38 10 1
+box 123 163 2 7 3
+text 210 163 1 3 0 __-2
+box 0 172 240 1 1
+text 4 176 1 3 0 DRIVE
+text 4 186 2 2 0 40
+bar 4 202 52 2 40 3 1
+text 64 176 1 3 0 AGE
+text 64 186 2 2 0 12
+bar 64 202 52 2 12 3 1
+text 124 176 1 3 0 FILTER
+text 124 186 2 2 0 88
+bar 124 202 52 2 88 3 1
+text 184 176 1 3 0 CRUSH
+text 184 186 2 2 0 0
+bar 184 202 52 2 0 3 1
+text 4 208 1 3 0 ECHO
+text 4 218 2 2 0 30
+bar 4 234 52 2 30 3 1
+text 64 208 1 3 0 WOW
+text 64 218 2 2 0 6
+bar 64 234 52 2 6 3 1
+text 124 208 1 3 0 FLUTTER
+text 124 218 2 2 0 4
+bar 124 234 52 2 4 3 1
+text 184 208 1 3 0 SCRUB
+text 184 218 2 2 0 <_>
+box 0 0 240 28 11
+end
+batch
+text 8 7 2 14 11 PUNCH_IN_T2
+end
+wait 200
+shot 3-punch-in
+pixel 2 2 F1E6
+pixel 14 12 F1E6
+pixel 10 40 0000
+pixel 165 36 F1E6
+pixel 200 50 F1E6
+pixel 2 92 18E3
+pixel 92 91 18E3
+pixel 122 91 18E3
+pixel 62 107 18E3
+pixel 92 107 18E3
+pixel 222 107 18E3
+pixel 20 138 3CBB
+pixel 100 147 2D94
+pixel 17 165 E2B3
+pixel 8 180 738E
+pixel 10 220 EF5D
+pixel 190 236 0000
+pixel 236 236 0000
+# A press refused: 84 items
+batch
+clear 0
+end
+batch
+text 6 7 2 2 0 TAPE_3
+text 186 11 1 3 0 132_BPM
+text 4 34 4 2 0 012.1
+text 124 48 2 3 0 .1
+box 162 34 74 28 1
+text 175 41 2 2 1 STOP
+text 6 66 1 3 0 NO_TRACK_ARMED
+box 0 76 240 1 1
+text 6 80 1 4 0 FX_PADS
+text 132 80 1 3 0 SHIFT:_MIXER_PAGE
+box 1 90 28 14 1
+text 9 94 1 7 1 T1
+box 31 90 28 14 1
+text 39 94 1 8 1 T2
+box 61 90 28 14 1
+text 69 94 1 9 1 T3
+box 91 90 28 14 1
+text 99 94 1 10 1 T4
+box 121 90 28 14 1
+text 126 94 1 12 1 BRK
+box 151 90 28 14 1
+text 156 94 1 12 1 REV
+box 181 90 28 14 1
+text 186 94 1 12 1 CHP
+box 211 90 28 14 1
+text 216 94 1 12 1 STP
+box 1 106 28 14 1
+text 6 110 1 13 1 HLF
+box 31 106 28 14 1
+text 36 110 1 13 1 DBL
+box 61 106 28 14 1
+text 66 110 1 4 1 ROL
+box 91 106 28 14 1
+text 96 110 1 4 1 FLT
+box 121 106 28 14 1
+text 126 110 1 4 1 ECH
+box 151 106 28 14 1
+text 156 110 1 4 1 CRS
+box 181 106 28 14 1
+text 186 110 1 14 1 CAT
+box 211 106 28 14 1
+text 216 110 1 14 1 GRB
+text 6 136 1 7 0 1
+bar 16 137 180 5 0 7 1
+box 156 136 2 7 3
+text 210 136 1 3 0 __+0
+text 6 145 1 8 0 2
+bar 16 146 180 5 0 8 1
+box 142 145 2 7 3
+text 210 145 1 3 0 __-1
+text 6 154 1 9 0 3
+bar 16 155 180 5 0 9 1
+box 173 154 2 7 3
+text 210 154 1 3 0 __+1
+text 6 163 1 10 0 4
+bar 16 164 180 5 0 10 1
+box 123 163 2 7 3
+text 210 163 1 3 0 __-2
+box 0 172 240 1 1
+text 4 176 1 3 0 DRIVE
+text 4 186 2 2 0 40
+bar 4 202 52 2 40 3 1
+text 64 176 1 3 0 AGE
+text 64 186 2 2 0 12
+bar 64 202 52 2 12 3 1
+text 124 176 1 3 0 FILTER
+text 124 186 2 2 0 88
+bar 124 202 52 2 88 3 1
+text 184 176 1 3 0 CRUSH
+text 184 186 2 2 0 0
+bar 184 202 52 2 0 3 1
+text 4 208 1 3 0 ECHO
+text 4 218 2 2 0 30
+bar 4 234 52 2 30 3 1
+text 64 208 1 3 0 WOW
+text 64 218 2 2 0 6
+bar 64 234 52 2 6 3 1
+text 124 208 1 3 0 FLUTTER
+text 124 218 2 2 0 4
+bar 124 234 52 2 4 3 1
+text 184 208 1 3 0 SCRUB
+text 184 218 2 2 0 <_>
+end
+batch
+box 0 0 240 28 6
+text 8 7 2 0 6 NO_TRACK_ARMED
+end
+wait 200
+shot 4-refused
+pixel 2 2 FD20
+pixel 14 12 FD20
+pixel 10 40 0000
+pixel 165 36 18E3
+pixel 200 50 EF5D
+pixel 2 92 18E3
+pixel 92 91 18E3
+pixel 122 91 18E3
+pixel 62 107 18E3
+pixel 92 107 18E3
+pixel 222 107 18E3
+pixel 20 138 18E3
+pixel 100 147 18E3
+pixel 17 165 18E3
+pixel 8 180 738E
+pixel 10 220 EF5D
+pixel 190 236 0000
+pixel 236 236 0000
+# Pads held: 82 items
+batch
+clear 0
+end
+batch
+text 6 7 2 2 0 TAPE_3
+text 186 11 1 3 0 132_BPM
+text 4 34 4 2 0 016.1
+text 124 48 2 3 0 .2
+box 162 34 74 28 5
+text 175 41 2 0 5 PLAY
+text 6 66 1 8 0 ARM_T2
+box 0 76 240 1 1
+text 6 80 1 4 0 FX_PADS
+text 132 80 1 3 0 SHIFT:_MIXER_PAGE
+box 1 90 28 14 1
+text 9 94 1 7 1 T1
+box 31 90 28 14 1
+text 39 94 1 8 1 T2
+box 61 90 28 14 1
+text 69 94 1 9 1 T3
+box 91 90 28 14 1
+text 99 94 1 10 1 T4
+box 121 90 28 14 12
+text 126 94 1 0 12 BRK
+box 151 90 28 14 1
+text 156 94 1 12 1 REV
+box 181 90 28 14 1
+text 186 94 1 12 1 CHP
+box 211 90 28 14 1
+text 216 94 1 12 1 STP
+box 1 106 28 14 1
+text 6 110 1 13 1 HLF
+box 31 106 28 14 1
+text 36 110 1 13 1 DBL
+box 61 106 28 14 1
+text 66 110 1 4 1 ROL
+box 91 106 28 14 4
+text 96 110 1 0 4 FLT
+box 121 106 28 14 1
+text 126 110 1 4 1 ECH
+box 151 106 28 14 1
+text 156 110 1 4 1 CRS
+box 181 106 28 14 1
+text 186 110 1 14 1 CAT
+box 211 106 28 14 1
+text 216 110 1 14 1 GRB
+text 6 136 1 7 0 1
+bar 16 137 180 5 64 7 1
+box 156 136 2 7 3
+text 210 136 1 3 0 __+0
+text 6 145 1 8 0 2
+bar 16 146 180 5 51 8 1
+box 142 145 2 7 3
+text 210 145 1 3 0 __-1
+text 6 154 1 9 0 3
+bar 16 155 180 5 89 9 1
+box 173 154 2 7 3
+text 210 154 1 3 0 __+1
+text 6 163 1 10 0 4
+bar 16 164 180 5 76 10 1
+box 123 163 2 7 3
+text 210 163 1 3 0 __-2
+box 0 172 240 1 1
+text 4 176 1 3 0 DRIVE
+text 4 186 2 2 0 40
+bar 4 202 52 2 40 3 1
+text 64 176 1 3 0 AGE
+text 64 186 2 2 0 12
+bar 64 202 52 2 12 3 1
+text 124 176 1 3 0 FILTER
+text 124 186 2 2 0 88
+bar 124 202 52 2 88 3 1
+text 184 176 1 3 0 CRUSH
+text 184 186 2 2 0 0
+bar 184 202 52 2 0 3 1
+text 4 208 1 3 0 ECHO
+text 4 218 2 2 0 30
+bar 4 234 52 2 30 3 1
+text 64 208 1 3 0 WOW
+text 64 218 2 2 0 6
+bar 64 234 52 2 6 3 1
+text 124 208 1 3 0 FLUTTER
+text 124 218 2 2 0 4
+bar 124 234 52 2 4 3 1
+text 184 208 1 3 0 SCRUB
+text 184 218 2 2 0 <_>
+end
+wait 200
+shot 5-pads-held
+pixel 2 2 0000
+pixel 14 12 0000
+pixel 10 40 0000
+pixel 165 36 07E0
+pixel 200 50 0000
+pixel 2 92 18E3
+pixel 92 91 18E3
+pixel 122 91 FBE5
+pixel 62 107 18E3
+pixel 92 107 07FF
+pixel 222 107 18E3
+pixel 20 138 3CBB
+pixel 100 147 18E3
+pixel 17 165 E2B3
+pixel 8 180 738E
+pixel 10 220 EF5D
+pixel 190 236 0000
+pixel 236 236 0000
+# Mixer page, SHIFT held: 83 items
+batch
+clear 0
+end
+batch
+text 6 7 2 2 0 TAPE_3
+text 186 11 1 3 0 132_BPM
+text 4 34 4 2 0 009.2
+text 124 48 2 3 0 .1
+box 162 34 74 28 5
+text 175 41 2 0 5 PLAY
+text 6 66 1 8 0 ARM_T2
+text 150 66 1 3 0 SOLO_3__MUTE_4
+box 0 76 240 1 1
+text 6 80 1 6 0 MUTE
+text 126 80 1 6 0 SELECT
+box 1 90 28 14 1
+text 12 94 1 7 1 1
+box 31 90 28 14 1
+text 42 94 1 8 1 2
+box 61 90 28 14 1
+text 72 94 1 9 1 3
+box 91 90 28 14 10
+text 102 94 1 0 10 4
+box 121 90 28 14 1
+text 132 94 1 7 1 1
+box 151 90 28 14 8
+text 162 94 1 0 8 2
+box 181 90 28 14 1
+text 192 94 1 9 1 3
+box 211 90 28 14 1
+text 222 94 1 10 1 4
+box 1 106 28 14 1
+text 12 110 1 7 1 1
+box 31 106 28 14 1
+text 42 110 1 8 1 2
+box 61 106 28 14 9
+text 72 110 1 0 9 3
+box 91 106 28 14 1
+text 102 110 1 10 1 4
+box 121 106 28 14 1
+text 132 110 1 7 1 1
+box 151 106 28 14 8
+text 162 110 1 0 8 2
+box 181 106 28 14 1
+text 192 110 1 9 1 3
+box 211 106 28 14 1
+text 222 110 1 10 1 4
+text 6 124 1 6 0 SOLO
+text 126 124 1 6 0 ARM
+text 6 136 1 7 0 1
+bar 16 137 180 5 0 7 1
+box 156 136 2 7 3
+text 210 136 1 3 0 __+0
+text 6 145 1 8 0 2
+bar 16 146 180 5 0 8 1
+box 142 145 2 7 3
+text 210 145 1 3 0 __-1
+text 6 154 1 9 0 3
+bar 16 155 180 5 89 9 1
+box 173 154 2 7 3
+text 210 154 1 3 0 __+1
+text 6 163 1 10 0 4
+bar 16 164 180 5 0 10 1
+box 123 163 2 7 3
+text 210 163 1 3 0 ___M
+box 0 172 240 1 1
+text 4 176 1 3 0 PAN_1
+text 4 186 2 2 0 C
+bar 4 202 52 2 64 3 1
+text 64 176 1 3 0 PAN_2
+text 64 186 2 2 0 L19
+bar 64 202 52 2 40 3 1
+text 124 176 1 3 0 PAN_3
+text 124 186 2 2 0 R19
+bar 124 202 52 2 88 3 1
+text 184 176 1 3 0 PAN_4
+text 184 186 2 2 0 C
+bar 184 202 52 2 64 3 1
+text 4 208 1 3 0 GAIN_T2
+text 4 218 2 2 0 -
+text 64 208 1 3 0 MON_T2
+text 64 218 2 2 0 -
+text 124 208 1 3 0 SEND_T2
+text 124 218 2 2 0 -
+text 184 208 1 14 0 SYNTH_VOL
+text 184 218 2 14 0 100
+bar 184 234 52 2 100 14 1
+end
+wait 200
+shot 6-mixer
+pixel 2 2 0000
+pixel 14 12 0000
+pixel 10 40 0000
+pixel 165 36 07E0
+pixel 200 50 0000
+pixel 2 92 18E3
+pixel 92 91 E2B3
+pixel 122 91 18E3
+pixel 62 107 DD02
+pixel 92 107 18E3
+pixel 222 107 18E3
+pixel 20 138 18E3
+pixel 100 147 18E3
+pixel 17 165 18E3
+pixel 8 180 0000
+pixel 10 220 0000
+pixel 190 236 0000
+pixel 236 236 0000
+# The same states, each only what changed from the one before.
+batch
+clear 0
+end
+batch
+text 6 7 2 2 0 TAPE_3
+text 186 11 1 3 0 132_BPM
+text 4 34 4 2 0 012.1
+text 124 48 2 3 0 .1
+box 162 34 74 28 1
+text 175 41 2 2 1 STOP
+text 6 66 1 8 0 ARM_T2
+box 0 76 240 1 1
+text 6 80 1 4 0 FX_PADS
+text 132 80 1 3 0 SHIFT:_MIXER_PAGE
+box 1 90 28 14 1
+text 9 94 1 7 1 T1
+box 31 90 28 14 1
+text 39 94 1 8 1 T2
+box 61 90 28 14 1
+text 69 94 1 9 1 T3
+box 91 90 28 14 1
+text 99 94 1 10 1 T4
+box 121 90 28 14 1
+text 126 94 1 12 1 BRK
+box 151 90 28 14 1
+text 156 94 1 12 1 REV
+box 181 90 28 14 1
+text 186 94 1 12 1 CHP
+box 211 90 28 14 1
+text 216 94 1 12 1 STP
+box 1 106 28 14 1
+text 6 110 1 13 1 HLF
+box 31 106 28 14 1
+text 36 110 1 13 1 DBL
+box 61 106 28 14 1
+text 66 110 1 4 1 ROL
+box 91 106 28 14 1
+text 96 110 1 4 1 FLT
+box 121 106 28 14 1
+text 126 110 1 4 1 ECH
+box 151 106 28 14 1
+text 156 110 1 4 1 CRS
+box 181 106 28 14 1
+text 186 110 1 14 1 CAT
+box 211 106 28 14 1
+text 216 110 1 14 1 GRB
+text 6 136 1 7 0 1
+bar 16 137 180 5 0 7 1
+box 156 136 2 7 3
+text 210 136 1 3 0 __+0
+text 6 145 1 8 0 2
+bar 16 146 180 5 0 8 1
+box 142 145 2 7 3
+text 210 145 1 3 0 __-1
+text 6 154 1 9 0 3
+bar 16 155 180 5 0 9 1
+box 173 154 2 7 3
+text 210 154 1 3 0 __+1
+text 6 163 1 10 0 4
+bar 16 164 180 5 0 10 1
+box 123 163 2 7 3
+text 210 163 1 3 0 __-2
+box 0 172 240 1 1
+text 4 176 1 3 0 DRIVE
+text 4 186 2 2 0 40
+bar 4 202 52 2 40 3 1
+text 64 176 1 3 0 AGE
+text 64 186 2 2 0 12
+bar 64 202 52 2 12 3 1
+text 124 176 1 3 0 FILTER
+text 124 186 2 2 0 88
+bar 124 202 52 2 88 3 1
+text 184 176 1 3 0 CRUSH
+text 184 186 2 2 0 0
+bar 184 202 52 2 0 3 1
+text 4 208 1 3 0 ECHO
+text 4 218 2 2 0 30
+bar 4 234 52 2 30 3 1
+text 64 208 1 3 0 WOW
+text 64 218 2 2 0 6
+bar 64 234 52 2 6 3 1
+text 124 208 1 3 0 FLUTTER
+text 124 218 2 2 0 4
+bar 124 234 52 2 4 3 1
+text 184 208 1 3 0 SCRUB
+text 184 218 2 2 0 <_>
+end
+wait 200
+# to Playing, FILTER turned: 11 changes
+batch
+text 4 34 4 2 0 025.2
+text 124 48 2 3 0 .3
+box 162 34 74 28 5
+text 175 41 2 0 5 PLAY
+bar 16 137 180 5 89 7 1
+bar 16 146 180 5 64 8 1
+bar 16 155 180 5 104 9 1
+bar 16 164 180 5 51 10 1
+text 124 176 1 14 0 FILTER
+text 124 186 2 4 0 104
+bar 124 202 52 2 104 4 1
+end
+wait 200
+shot 2-filter-turned-changed
+pixel 2 2 0000
+pixel 14 12 0000
+pixel 10 40 0000
+pixel 165 36 07E0
+pixel 200 50 0000
+pixel 2 92 18E3
+pixel 92 91 18E3
+pixel 122 91 18E3
+pixel 62 107 18E3
+pixel 92 107 18E3
+pixel 222 107 18E3
+pixel 20 138 3CBB
+pixel 100 147 2D94
+pixel 17 165 E2B3
+pixel 8 180 738E
+pixel 10 220 EF5D
+pixel 190 236 0000
+pixel 236 236 0000
+# to PUNCH IN: 14 changes
+batch
+text 175 41 2 0 5
+text 4 34 4 2 0 033.2
+text 124 48 2 3 0 .1
+box 162 34 74 28 11
+text 181 41 2 14 11 REC
+bar 16 137 180 5 76 7 1
+bar 16 146 180 5 102 8 1
+bar 16 155 180 5 64 9 1
+bar 16 164 180 5 38 10 1
+text 124 176 1 3 0 FILTER
+text 124 186 2 2 0 88
+bar 124 202 52 2 88 3 1
+box 0 0 240 28 11
+text 8 7 2 14 11 PUNCH_IN_T2
+end
+wait 200
+shot 3-punch-in-changed
+pixel 2 2 F1E6
+pixel 14 12 F1E6
+pixel 10 40 0000
+pixel 165 36 F1E6
+pixel 200 50 F1E6
+pixel 2 92 18E3
+pixel 92 91 18E3
+pixel 122 91 18E3
+pixel 62 107 18E3
+pixel 92 107 18E3
+pixel 222 107 18E3
+pixel 20 138 3CBB
+pixel 100 147 2D94
+pixel 17 165 E2B3
+pixel 8 180 738E
+pixel 10 220 EF5D
+pixel 190 236 0000
+pixel 236 236 0000
+# to A press refused: 11 changes
+batch
+text 181 41 2 14 11
+text 4 34 4 2 0 012.1
+box 162 34 74 28 1
+text 175 41 2 2 1 STOP
+text 6 66 1 3 0 NO_TRACK_ARMED
+bar 16 137 180 5 0 7 1
+bar 16 146 180 5 0 8 1
+bar 16 155 180 5 0 9 1
+bar 16 164 180 5 0 10 1
+box 0 0 240 28 6
+text 8 7 2 0 6 NO_TRACK_ARMED
+end
+wait 200
+shot 4-refused-changed
+pixel 2 2 FD20
+pixel 14 12 FD20
+pixel 10 40 0000
+pixel 165 36 18E3
+pixel 200 50 EF5D
+pixel 2 92 18E3
+pixel 92 91 18E3
+pixel 122 91 18E3
+pixel 62 107 18E3
+pixel 92 107 18E3
+pixel 222 107 18E3
+pixel 20 138 18E3
+pixel 100 147 18E3
+pixel 17 165 18E3
+pixel 8 180 738E
+pixel 10 220 EF5D
+pixel 190 236 0000
+pixel 236 236 0000
+# to Pads held: 15 changes
+batch
+box 0 0 0 28 6
+text 8 7 2 0 6
+text 4 34 4 2 0 016.1
+text 124 48 2 3 0 .2
+box 162 34 74 28 5
+text 175 41 2 0 5 PLAY
+text 6 66 1 8 0 ARM_T2
+box 121 90 28 14 12
+text 126 94 1 0 12 BRK
+box 91 106 28 14 4
+text 96 110 1 0 4 FLT
+bar 16 137 180 5 64 7 1
+bar 16 146 180 5 51 8 1
+bar 16 155 180 5 89 9 1
+bar 16 164 180 5 76 10 1
+end
+wait 200
+shot 5-pads-held-changed
+pixel 2 2 0000
+pixel 14 12 0000
+pixel 10 40 0000
+pixel 165 36 07E0
+pixel 200 50 0000
+pixel 2 92 18E3
+pixel 92 91 18E3
+pixel 122 91 FBE5
+pixel 62 107 18E3
+pixel 92 107 07FF
+pixel 222 107 18E3
+pixel 20 138 3CBB
+pixel 100 147 18E3
+pixel 17 165 E2B3
+pixel 8 180 738E
+pixel 10 220 EF5D
+pixel 190 236 0000
+pixel 236 236 0000
+# to Mixer page, SHIFT held: 73 changes
+batch
+text 132 80 1 3 0
+text 9 94 1 7 1
+text 39 94 1 8 1
+text 69 94 1 9 1
+text 99 94 1 10 1
+text 126 94 1 0 12
+text 156 94 1 12 1
+text 186 94 1 12 1
+text 216 94 1 12 1
+text 6 110 1 13 1
+text 36 110 1 13 1
+text 66 110 1 4 1
+text 96 110 1 0 4
+text 126 110 1 4 1
+text 156 110 1 4 1
+text 186 110 1 14 1
+text 216 110 1 14 1
+bar 4 234 0 2 30 3 1
+bar 64 234 0 2 6 3 1
+bar 124 234 0 2 4 3 1
+text 4 34 4 2 0 009.2
+text 124 48 2 3 0 .1
+text 150 66 1 3 0 SOLO_3__MUTE_4
+text 6 80 1 6 0 MUTE
+text 126 80 1 6 0 SELECT
+text 12 94 1 7 1 1
+text 42 94 1 8 1 2
+text 72 94 1 9 1 3
+box 91 90 28 14 10
+text 102 94 1 0 10 4
+box 121 90 28 14 1
+text 132 94 1 7 1 1
+box 151 90 28 14 8
+text 162 94 1 0 8 2
+text 192 94 1 9 1 3
+text 222 94 1 10 1 4
+text 12 110 1 7 1 1
+text 42 110 1 8 1 2
+box 61 106 28 14 9
+text 72 110 1 0 9 3
+box 91 106 28 14 1
+text 102 110 1 10 1 4
+text 132 110 1 7 1 1
+box 151 106 28 14 8
+text 162 110 1 0 8 2
+text 192 110 1 9 1 3
+text 222 110 1 10 1 4
+text 6 124 1 6 0 SOLO
+text 126 124 1 6 0 ARM
+bar 16 137 180 5 0 7 1
+bar 16 146 180 5 0 8 1
+bar 16 164 180 5 0 10 1
+text 210 163 1 3 0 ___M
+text 4 176 1 3 0 PAN_1
+text 4 186 2 2 0 C
+bar 4 202 52 2 64 3 1
+text 64 176 1 3 0 PAN_2
+text 64 186 2 2 0 L19
+bar 64 202 52 2 40 3 1
+text 124 176 1 3 0 PAN_3
+text 124 186 2 2 0 R19
+text 184 176 1 3 0 PAN_4
+text 184 186 2 2 0 C
+bar 184 202 52 2 64 3 1
+text 4 208 1 3 0 GAIN_T2
+text 4 218 2 2 0 -
+text 64 208 1 3 0 MON_T2
+text 64 218 2 2 0 -
+text 124 208 1 3 0 SEND_T2
+text 124 218 2 2 0 -
+text 184 208 1 14 0 SYNTH_VOL
+text 184 218 2 14 0 100
+bar 184 234 52 2 100 14 1
+end
+wait 200
+shot 6-mixer-changed
+pixel 2 2 0000
+pixel 14 12 0000
+pixel 10 40 0000
+pixel 165 36 07E0
+pixel 200 50 0000
+pixel 2 92 18E3
+pixel 92 91 E2B3
+pixel 122 91 18E3
+pixel 62 107 DD02
+pixel 92 107 18E3
+pixel 222 107 18E3
+pixel 20 138 18E3
+pixel 100 147 18E3
+pixel 17 165 18E3
+pixel 8 180 0000
+pixel 10 220 0000
+pixel 190 236 0000
+pixel 236 236 0000

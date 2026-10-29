@@ -1,0 +1,131 @@
+# Pass 4: protocol version 2 (app/hindsight.h): BOX, BAR, TEXT's background,
+# the sixteen colours, LED, BATCH, and version 1 beside it. Every expect,
+# pixel, band and light must hold, or the run fails.
+boot
+wait 1500
+sysex F0 7D 48 53 01 01 00 F7              # HELLO in version 1: version 2, 96 items
+expect F0 7D 48 53 01 01 7F 00 02 60 F7
+sysex F0 7D 48 53 02 02 00 F7              # and in version 2, answered in version 2
+expect F0 7D 48 53 02 02 7F 00 02 60 F7
+# Version 1 as it always was: no BOX, seven colours, TEXT on CLEAR's colour.
+clear 1
+expect F0 7D 48 53 01 01 7F 00 F7
+sysex F0 7D 48 53 01 03 06 00 00 00 00 0A 00 0A 00 02 F7
+expect F0 7D 48 53 01 03 7F 01 F7          # BOX: unknown to version 1
+sysex F0 7D 48 53 01 04 01 07 F7
+expect F0 7D 48 53 01 04 7F 02 F7          # colour 7 is version 2's
+text 8 8 1 2 V1
+wait 200
+pixel 8 8 EF5D                             # V's first column is text
+pixel 13 8 18E3                            # and the gap after it CLEAR's colour
+# Version 2.
+version 2
+strict
+clear 0
+# The sixteen colours, a box each along the top.
+box 0 0 15 15 0
+box 15 0 15 15 1
+box 30 0 15 15 2
+box 45 0 15 15 3
+box 60 0 15 15 4
+box 75 0 15 15 5
+box 90 0 15 15 6
+box 105 0 15 15 7
+box 120 0 15 15 8
+box 135 0 15 15 9
+box 150 0 15 15 10
+box 165 0 15 15 11
+box 180 0 15 15 12
+box 195 0 15 15 13
+box 210 0 15 15 14
+box 225 0 15 15 15
+# TEXT with a background, over a box: the box shows round it, the text's
+# own background behind its glyphs.
+box 160 30 76 30 5
+text 164 34 2 0 5 PLAY
+text 4 34 4 2 0 012.3
+# A bar at 64 of 127: 91 of its 180 columns lit, the rest its back.
+bar 16 137 180 5 64 7 1
+# A tick over it, later in the order, so on top.
+box 120 136 2 7 3
+wait 200
+shot 1-colours
+pixel 7 7 0000
+pixel 22 7 18E3
+pixel 37 7 EF5D
+pixel 52 7 738E
+pixel 67 7 07FF
+pixel 82 7 07E0
+pixel 97 7 FD20
+pixel 112 7 3CBB
+pixel 127 7 2D94
+pixel 142 7 DD02
+pixel 157 7 E2B3
+pixel 172 7 F1E6
+pixel 187 7 FBE5
+pixel 202 7 A39E
+pixel 217 7 FFFF
+pixel 232 7 0945
+pixel 161 31 07E0                          # the box round PLAY
+pixel 164 34 0000                          # P's first column, black on green
+pixel 169 34 0000                          # P's third column
+pixel 174 34 07E0                          # the gap between P and L is the text's background
+pixel 106 139 3CBB                         # the bar's last lit column, x 16 + 90
+pixel 107 139 18E3                         # its first unlit
+pixel 121 140 738E                         # the tick over it
+pixel 195 141 18E3
+bands 7FFF
+# A bar's value moves: only its band is repainted.
+bar 16 137 180 5 127 7 1
+wait 200
+bands 100
+pixel 195 141 3CBB
+pixel 121 140 738E                         # the tick is still on top
+# The same bar again: nothing.
+bar 16 137 180 5 127 7 1
+wait 200
+bands 0
+# A BOX and a TEXT at one place are two items; a w of 0 removes the box.
+box 4 200 60 20 11
+text 4 200 1 14 11 REC
+wait 200
+pixel 30 215 F1E6
+box 4 200 0 20 11
+wait 200
+pixel 30 215 0000                          # the box is gone
+pixel 4 200 FFFF                           # the text is still there
+bands 3000
+# BATCH: the banner and the counter in one frame, one ack: 3 done.
+batch
+box 0 76 240 28 11
+text 8 83 2 14 11 PUNCH IN T2
+text 4 34 4 2 0 012.4
+end
+wait 200
+shot 2-batch
+pixel 2 78 F1E6
+bands 7C                                   # rows 34-103: bands 2 to 6
+# The ack says how many were done.
+expect F0 7D 48 53 02 1E 7F 00 03 00 F7
+# LED: pads by RGB, buttons on and blinking.
+light pad 4 open
+light button 16 open
+batch
+led pad 4 124 62 20
+led button 16 1
+led button 17 2
+led button 0 0
+end
+light pad 4 2F1708                         # 0-127 is off to Open's brightest, 48
+light pad 5 open
+light button 16 1
+light button 0 0
+wait 300
+# HOME gives the screen and the lights back.
+press 2
+release 2
+wait 100
+expect F0 7D 48 53 01 00 03 F7
+light pad 4 open
+light button 16 open
+light button 17 open
