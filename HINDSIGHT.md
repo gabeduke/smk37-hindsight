@@ -303,8 +303,10 @@ The firmware image and the user partition share the flash below 0xFF000.
 V01 left 29 bytes free in the image. Replacing the workbench's transfer
 protocol with ours took the Elite's image from 453,892 bytes to 450,500,
 which leaves 3,421 bytes. The surface, the link and the soft key took it
-to 451,140 (2,781 free), and partial repaint to 451,364: 2,557 bytes
-free. More room comes from one of two places:
+to 451,140 (2,781 free), partial repaint to 451,364, and protocol
+version 2 to 452,228: 1,693 bytes free. Version 2 cost 864 bytes and the
+two together 1,088, against the plan's estimate of about 900. More room
+comes from one of two places:
 
 - something Open has that Hindsight doesn't need. The plan's cost table
   lists it (step 7 of `docs/plan/the-instrument.md` in hindsight): mostly
