@@ -1,9 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception
  * Copyright (c) 2026 珠海笙科智能科技有限公司 (M-VAVE).
- * Connect the FM1 control API to the board scanner. */
+ * Connect the FM1 control API to the board scanner.
+ * Modified 2026-10 for Hindsight: the soft key's download mode, and the
+ * Pi's lights while it has the screen (hindsight.h). */
 #include "smk37_hw.h"
 #include "fm1_lcd_hw.h"
 #include "lcd.inc"
+#include "hindsight.h"
 
 static uint32_t virtual_leds;
 static uint16_t button_leds;
@@ -11,6 +14,8 @@ static uint8_t rgb_buffer[420] __attribute__((aligned(4)));
 static uint32_t rgb_colors[16];
 static unsigned rgb_dirty=0xffff;
 static unsigned led_modes=~0U;
+/* The buttons whose lights the Pi set at the last read (hindsight.h). */
+static uint32_t pi_buttons;
 static const uint8_t rgb_map[16]={0,15,14,13,12,11,10,9,1,2,3,4,5,6,7,8};
 /* PH8 is an encoder input on both boards, with no fitted TRS MIDI RX. */
 uint8_t fm1_io_trs_midi_enabled(void) {return 0;}
@@ -19,6 +24,19 @@ void fm1_controls_read(struct fm1_controls *state)
 {
     smk37_scan_read();smk37_controls_snapshot(state);
     state->battery=smk37_battery_adc();
+    /* The Pi's lights, while it has them. A light it lets go of is put back
+     * as the keyboard has it: off, or Open's own, below and on the next read. */
+    uint32_t pi=0;
+    for(unsigned id=0;id<HS_BUTTONS;++id) {
+        int on=hindsight_button(id);
+        if(on>=0){smk37_led(id,(unsigned)on);pi|=1U<<id;}
+        else if(pi_buttons&(1U<<id))smk37_led(id,0);
+    }
+    if(pi_buttons&~pi) {
+        for(unsigned key=0;key<14;++key)fm1_led_set(key,(button_leds>>key)&1U);
+        led_modes=~0U;
+    }
+    pi_buttons=pi;
     unsigned bank=smk37_fader_bank(),pad=smk37_pad_steps()||smk37_pad_focus();
     unsigned modes=bank|(pad<<1),changed=led_modes==~0U?3:modes^led_modes;
     if(changed&1)smk37_led(1,bank);
@@ -27,7 +45,7 @@ void fm1_controls_read(struct fm1_controls *state)
     for(unsigned i=0;i<16;++i) {
         unsigned key=smk37_screen_pad_key(i);
         unsigned on=key<27 && (virtual_leds&(1U<<key));
-        smk37_rgb_set(i,smk37_pad_color(i,on));
+        smk37_rgb_set(i,hindsight_pad(i,smk37_pad_color(i,on)));
     }
     smk37_rgb_service();
 }

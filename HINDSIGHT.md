@@ -114,37 +114,72 @@ are the same bytes. That match is what shows the Mac build is right.
 
 ## The Pi's protocol
 
-The Pi drives the keyboard: it draws text on the screen, and while it has
-the screen the panel speaks to it. `app/hindsight.h` has the full
-definition.
+The Pi drives the keyboard: it draws on the screen and sets the panel's
+lights, and while it has the screen the panel speaks to it. This is
+version 2; `app/hindsight.h` has the full definition.
 
 ```
-F0 7D 48 53 01 <seq> <cmd> <payload> F7       48 53 is "HS"; 01 the version
+F0 7D 48 53 <v> <seq> <cmd> <payload> F7      48 53 is "HS"; <v> 01 or 02
 00 HELLO                                       is this our firmware?
 01 CLEAR   <colour>                            take the screen, fill it
-02 TEXT    <x lo> <x hi> <y lo> <y hi> <scale> <colour> <ASCII...>
+02 TEXT    <x lo> <x hi> <y lo> <y hi> <scale> <colour> [<back>] <ASCII...>
+                                               <back> in version 2 only
 03 RELEASE                                     give the screen back
 04 KNOB    <knob 0-6> <value 0-127>            where an encoder stands
-ack: F0 7D 48 53 01 <seq> 7F <status> F7      HELLO adds <version> <items>
+version 2 only:
+06 BOX     <x lo> <x hi> <y lo> <y hi> <w lo> <w hi> <h lo> <h hi> <colour>
+07 BAR     <x lo> <x hi> <y lo> <y hi> <w lo> <w hi> <h lo> <h hi>
+           <value 0-127> <colour> <back>
+08 LED     <pad 0-15> <red> <green> <blue>     each 0-127
+08 LED     <16 + button id> <state>            0 off, 1 on, 2 blinking
+09 BATCH   <cmd> <n> <n bytes> <cmd> <n> ...   01-08, as if each sent alone
+ack: F0 7D 48 53 <v> <seq> 7F <status> F7     in the version it was sent in
+     HELLO adds 02 60 (version 2, 96 items); BATCH adds <done lo> <done hi>
      status 0 ok, 1 unknown, 2 malformed, 3 full, 4 released
 the keyboard's own: F0 7D 48 53 01 00 03 F7   RELEASE: HOME gave the screen back
                     F0 7D 48 53 01 00 05 F7   OFFER: HOME held, the Pi may take it
 the Pi answers neither; sent to the keyboard, OFFER is answered unknown
 ```
 
-- **Only CLEAR takes the screen.** TEXT while the screen is the keyboard's
-  is answered *released* and changes nothing. So a Pi still updating a
-  counter can't undo a HOME.
-- **TEXT works by place.** TEXT where there's already text replaces it,
-  and TEXT with no text removes it. At least one glyph has to fit.
+- **Version 1 still works as it did.** A version 1 frame is read as
+  before: TEXT has no background (it is CLEAR's colour), the palette is
+  the first seven colours, and BOX, BAR, LED and BATCH are answered
+  unknown. Two things a version 1 Pi can't tell apart from before: the
+  list has room for 96 items, not 16, and HELLO's ack says 02 60, which it
+  doesn't read. The keyboard's own RELEASE and OFFER still say 01.
+- **Only CLEAR takes the screen.** Anything that draws or lights while
+  the screen is the keyboard's is answered *released* and changes
+  nothing. So a Pi still updating a counter can't undo a HOME.
+- **The screen is a list of items**, drawn in the order they were first
+  sent: a later one covers an earlier one. An item is found by its kind
+  and its place: TEXT replaces the TEXT at (x, y), BOX the BOX there and
+  BAR the BAR, and a replaced item keeps its place in the order. TEXT with
+  no text removes it, and a BOX or a BAR with a width or a height of 0.
+  At least one glyph has to fit; a box or a bar has to fit whole. CLEAR
+  empties the list.
+- **BAR** is a meter or a fader's place: the left (w × value + 63) / 127
+  columns in its colour, the rest in its back.
 - **A change repaints only its bands:** the 16-row bands it covers,
-  between the columns it covers. A TEXT repaints where the old text was
-  and where the new one is; the same TEXT again repaints nothing; a CLEAR
-  repaints the whole screen. A counter at scale 4 is two or three bands of
-  the fifteen, so it no longer keeps the LCD busy.
-- **Limits:** up to 16 items of 40 characters, in seven colours (black,
-  panel, text, dim, accent, green and amber). Lowercase is drawn as
-  capitals, which is the font Open has.
+  between the columns it covers. An item repaints where it was and where
+  it is; one sent again as it is repaints nothing; a CLEAR repaints the
+  whole screen. A counter at scale 4 is two or three bands of the
+  fifteen, so it no longer keeps the LCD busy.
+- **BATCH** is a whole screen, or a whole change, in one frame and one
+  ack. It applies its commands in turn and stops at the first that isn't
+  OK, answering that one's status and how many were done before it,
+  which stay done. A command whose length runs past the frame is
+  malformed; a HELLO or a BATCH inside one is unknown. A frame is up to
+  1,024 bytes, F0 to F7, which holds the design's busiest screen (84
+  items) in one. Send what goes before what comes, so the list has room.
+- **LED** lights a pad (its RGB, the LEDs' own levels: Open's pads use up
+  to 48 of the 127) or a button (on, off, or blinking 250 ms on and
+  250 ms off), by the surface's button ids. HOME and FADER BANK stay the
+  keyboard's. A light the Pi hasn't set stays the keyboard's, a CLEAR
+  keeps them, and when the screen goes back they all do.
+- **Limits:** up to 96 items, a TEXT of 40 characters, in sixteen colours:
+  0 black, 1 panel, 2 text, 3 dim, 4 accent, 5 green, 6 amber, 7–10 the
+  tracks T1–T4, 11 red, 12 orange, 13 violet, 14 white, 15 deep. Lowercase
+  is drawn as capitals, which is the font Open has.
 - **HOME** gives the screen back, and the keyboard sends its own RELEASE
   to the port that sent the CLEAR. Pressed alone, HOME does nothing else,
   so the page is the one that was left. With a button held that Open still
@@ -200,7 +235,12 @@ that sent the CLEAR, instead of acting on Open's hidden page:
   out does.
 
 What isn't done yet:
-- The pad and button LEDs keep showing Open's state.
+- The Pi's layout (step 7's build order, 4 and 5 in Hindsight): this
+  firmware draws and lights what it is sent, and nothing sends version 2
+  yet.
+- The lights on a unit. `app/board/panel.c` puts the Pi's lights on the
+  panel, and the simulator doesn't run the board's code: the host tests
+  and `light` check what the Pi set, not the LEDs themselves.
 
 ## Seeing the screen without a keyboard
 
@@ -208,7 +248,16 @@ What isn't done yet:
 tools/screen/run.sh                         # tools/screen/pass1.txt
 tools/screen/run.sh tools/screen/surface.txt
 tools/screen/run.sh tools/screen/repaint.txt
+tools/screen/run.sh tools/screen/v2.txt
+tools/screen/run.sh tools/screen/prototype.txt
 ```
+
+`prototype.txt` is generated from the layout of the prototype the surface
+was designed on (step 7 of `docs/plan/the-instrument.md` in hindsight,
+*The surface, designed*): its six screens, each drawn whole and then as
+only what changed from the one before. The pixels it checks are the
+prototype's own drawing of each; all eleven shots matched it, pixel for
+pixel, when it was made.
 
 It compiles this `app/` code on Open's simulator (`web/engine`) with the
 host's C compiler and plays a script. A script sends SysEx, waits, presses
@@ -223,7 +272,12 @@ scripts and uploads the pictures. It fails unless:
   release; HOME let go sooner, with SHIFT, with PLAY, a key or an encoder
   meanwhile, or pressed while the Pi had the screen offered nothing;
 - a change wrote only the LCD bands it covers (`bands` in a script), and
-  the screen it left is the same picture as one drawn from a CLEAR.
+  the screen it left is the same picture as one drawn from a CLEAR;
+- version 2 drew every colour, box, bar and background where it should
+  (`pixel`), set and gave back the lights (`light`), and acked every
+  command OK (`strict`);
+- the design's screens drawn as changes are the same pictures as drawn
+  whole.
 
 ## Tests
 
@@ -236,8 +290,9 @@ It checks five things:
 - the areas the app writes, by compiling `instrument.h`'s asserts and
   printing the areas;
 - that no other file writes Flash;
-- the Pi's protocol: every command, the acks, malformed frames, a full
-  list, a busy port, what each change repaints, the surface (each
+- the Pi's protocol, both versions: every command, the acks, malformed
+  frames, a full list, BATCH's stops and counts, the lights and their
+  blinking, a busy port, what each change repaints, the surface (each
   control, ownership across HOME, the clamps) and OFFER;
 - `flash-diff.py`;
 - that no dump is in the tree.
