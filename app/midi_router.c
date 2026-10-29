@@ -212,7 +212,7 @@ static void deliver(unsigned port, unsigned owner, const uint8_t *m)
     unsigned ch = m[0] & 15U, type = m[0] & 0xf0U, note = m[1], bit = 1U << (note & 7U);
     if (o->recover || o->stop) return;
     /* Open's clock and transport would move the Pi's tape (hindsight.h). */
-    if (m[0] >= 0xf0 && hindsight_quiet(port)) return;
+    if (m[0] >= 0xf0 && owner < THRU_OWNER && hindsight_quiet(port)) return;
     if (m[0] < 0xf0) o->channels |= (uint16_t)(1U << ch);
     if (type == 0x90 || type == 0x80) {
         uint8_t *held = &o->held[owner][note >> 3];

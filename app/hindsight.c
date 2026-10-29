@@ -101,6 +101,7 @@ static unsigned apply(unsigned version, unsigned command, const uint8_t *p, unsi
     if (command == HS_CLEAR) {
         if (n != 1 || p[0] >= colours) return HS_MALFORMED;
         background = p[0]; count = 0; active = 1; owner = port; ++revision;
+        memset(knob_at, 0, sizeof knob_at); /* the places were on the screen it clears */
         damage(0, 0, FM1_SCREEN_WIDTH, FM1_SCREEN_HEIGHT);
         return HS_OK;
     }
@@ -129,8 +130,9 @@ static unsigned apply(unsigned version, unsigned command, const uint8_t *p, unsi
         return HS_OK;
     }
     if (command == HS_KNOB) {
-        if ((n != 2 && n != 10) || p[0] >= HS_KNOBS) return HS_MALFORMED;
+        if ((n != 2 && (n != 10 || version == 1)) || p[0] >= HS_KNOBS) return HS_MALFORMED;
         knobs[p[0]] = p[1];
+        knob_at[p[0]].on = 0; /* no places: no echo */
         if (n == 10) {
             /* Where its value is drawn, so a turn can echo it there. */
             unsigned x = p[2] | (unsigned)p[3] << 7, y = p[4] | (unsigned)p[5] << 7,

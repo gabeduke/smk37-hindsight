@@ -210,10 +210,14 @@ the Pi answers neither; sent to the keyboard, OFFER is answered unknown
     TEXT at (x, y) and the BAR at (bar x, bar y). A turn then writes the
     value into both, as decimal digits and the bar's value, in their own
     style, and the Pi draws the cell again after. Send the places only
-    when the cell shows the knob's value as its number; giving the screen
-    back forgets them.
+    when the cell shows the knob's value as its number (version 2 only); a
+    KNOB of two bytes withdraws them, and a CLEAR or giving the screen
+    back forgets them all.
 - **The quiet clock:** while the Pi has the screen, the port it took it
-  from gets none of Open's clock or transport (F8, FA, FB, FC, F2). A
+  from gets none of Open's own clock or transport (F8, FA, FB, FC, F2);
+  what Thru routes there from another input still goes. The clock's
+  tempo goes too, so a Pi following the keyboard's clock
+  (`MIDI_CLOCK_DEVICE`) loses it while it has the screen. A
   busy link made `midi_router.c`'s recovery send MIDI Stop at every screen
   take, which stopped the Pi's tape.
 - **The pads' chain** shares SPI1 with the LCD, and a pad's light is sent

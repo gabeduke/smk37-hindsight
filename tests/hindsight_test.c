@@ -500,6 +500,17 @@ int main(void)
         CHECK(hindsight_surface(SMK37_ENCODER, 2, 1, 0) == 1 && hindsight_revision() == before);
         CHECK(message(62, HS_KNOB, 10, 1, 40, 112, 1, 0, 0, 0, 0) == HS_MALFORMED);   /* x 240 */
         CHECK(message(62, HS_KNOB, 9, 1, 40, 64, 0, 58, 1, 64, 0, 74) == HS_MALFORMED);
+        /* A KNOB without places withdraws them; a CLEAR forgets them. */
+        CHECK(message(64, HS_KNOB, 2, 1, 5) == HS_OK);
+        before = hindsight_revision();
+        CHECK(hindsight_surface(SMK37_ENCODER, 1, 1, 0) == 1 && hindsight_revision() == before);
+        CHECK(message(65, HS_KNOB, 10, 1, 40, 64, 0, 58, 1, 64, 0, 74, 1) == HS_OK);
+        CHECK(message(66, HS_CLEAR, 1, 0) == HS_OK && text2(64, 186, 2, 2, 0, "40") == HS_OK);
+        CHECK(hindsight_surface(SMK37_ENCODER, 1, 1, 0) == 1 && !strcmp(hindsight_item(0)->text, "40"));
+        /* Places are version 2's. */
+        version = 1;
+        CHECK(message(67, HS_KNOB, 10, 1, 40, 64, 0, 58, 1, 64, 0, 74, 1) == HS_MALFORMED);
+        version = 2;
         /* Giving the screen back forgets the places. */
         hindsight_release();
         CHECK(message(63, HS_CLEAR, 1, 0) == HS_OK && text2(64, 186, 2, 2, 0, "40") == HS_OK);
