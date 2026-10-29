@@ -31,6 +31,9 @@ jobs:
           # The surface's every expect must hold (run.sh fails otherwise).
           tools/screen/run.sh tools/screen/surface.txt
           tools/screen/run.sh tools/screen/pass1.txt
+          # A change repaints only its bands, and leaves what a full repaint draws.
+          tools/screen/run.sh tools/screen/repaint.txt
+          cmp build/screen/repaint/2-partial.png build/screen/repaint/3-full.png
           cd build/screen/pass1
           # The Pi drew; HOME gave back exactly the page it left; a TEXT after that changed nothing.
           ! cmp -s 1-open-home.png 2-pi-screen.png

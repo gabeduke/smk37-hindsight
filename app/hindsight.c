@@ -10,6 +10,8 @@ static unsigned count, active, revision, background, owner = FM1_MIDI_USB;
 static uint32_t held_pads, held_buttons;
 static unsigned touches;
 static uint8_t knobs[HS_KNOBS];
+/* What changed since screen.c last asked, per band: columns [left, right). */
+static uint8_t damage_left[HS_BANDS], damage_right[HS_BANDS];
 /* One message per port waits while that port's queue is full; a newer one
  * replaces it, as only the latest answer is worth sending late. */
 static struct { uint8_t bytes[11], length, pending; uint32_t since; } outgoing[3];
@@ -29,6 +31,21 @@ static void queue(unsigned port, const uint8_t *bytes, unsigned n)
     hindsight_poll();
 }
 
+static void damage(unsigned x, unsigned y, unsigned w, unsigned h)
+{
+    for (unsigned b = y / HS_BAND_ROWS; b <= (y + h - 1) / HS_BAND_ROWS; ++b) {
+        if (!damage_right[b] || x < damage_left[b]) damage_left[b] = (uint8_t)x;
+        if (x + w > damage_right[b]) damage_right[b] = (uint8_t)(x + w);
+    }
+}
+
+/* Where an item's glyphs are: as many as fit the screen's width. */
+static void item_damage(const struct hs_item *item)
+{
+    unsigned w = 6U * item->scale, n = (unsigned)strlen(item->text), fit = (FM1_SCREEN_WIDTH - item->x) / w;
+    damage(item->x, item->y, (n < fit ? n : fit) * w, 7U * item->scale);
+}
+
 static unsigned text_at(const uint8_t *p, unsigned n)
 {
     if (n < 6 || n - 6 > HS_TEXT) return HS_MALFORMED;
@@ -43,16 +60,21 @@ static unsigned text_at(const uint8_t *p, unsigned n)
     while (at < count && (items[at].x != x || items[at].y != y)) ++at;
     if (n == 6) {
         /* No text removes what was at (x, y). */
-        if (at < count) memmove(items + at, items + at + 1, (--count - at) * sizeof *items);
+        if (at == count) return HS_OK;
+        item_damage(items + at);
+        memmove(items + at, items + at + 1, (--count - at) * sizeof *items);
     } else {
+        struct hs_item next = {(uint8_t)x, (uint8_t)y, (uint8_t)scale, (uint8_t)colour, {0}};
+        memcpy(next.text, p + 6, n - 6);
         if (at == count) {
             if (count == HS_ITEMS) return HS_FULL;
             ++count;
-        }
-        struct hs_item *item = items + at;
-        item->x = (uint8_t)x; item->y = (uint8_t)y; item->scale = (uint8_t)scale; item->colour = (uint8_t)colour;
-        memcpy(item->text, p + 6, n - 6);
-        item->text[n - 6] = 0;
+        } else if (!memcmp(items + at, &next, sizeof next))
+            return HS_OK;
+        else
+            item_damage(items + at);
+        items[at] = next;
+        item_damage(&next);
     }
     ++revision;
     return HS_OK;
@@ -72,7 +94,7 @@ void hindsight_message(const uint8_t *m, size_t n, unsigned port)
         status = length ? HS_MALFORMED : HS_OK;
     else if (command == HS_CLEAR) {
         if (length != 1 || payload[0] >= HS_COLOURS) status = HS_MALFORMED;
-        else { background = payload[0]; count = 0; active = 1; owner = port; ++revision; }
+        else { background = payload[0]; count = 0; active = 1; owner = port; ++revision; damage(0, 0, FM1_SCREEN_WIDTH, FM1_SCREEN_HEIGHT); }
     } else if (command == HS_TEXT_AT)
         status = text_at(payload, length);
     else if (command == HS_RELEASE) {
@@ -178,5 +200,11 @@ void hindsight_offer(void)
 unsigned hindsight_active(void) { return active; }
 unsigned hindsight_touches(void) { return touches; }
 unsigned hindsight_revision(void) { return revision; }
+unsigned hindsight_damage(unsigned band)
+{
+    unsigned d = damage_left[band] | (unsigned)damage_right[band] << 8;
+    damage_right[band] = 0;
+    return d >> 8 ? d : 0;
+}
 unsigned hindsight_background(void) { return background; }
 const struct hs_item *hindsight_item(unsigned index) { return index < count ? items + index : NULL; }

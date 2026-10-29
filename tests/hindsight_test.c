@@ -121,6 +121,40 @@ int main(void)
     /* A bad seq still gets a valid ack. */
     CHECK(message(0x80, HS_HELLO, 0) == HS_MALFORMED && sent[5] < 0x80);
 
+    /* Damage: a change repaints the bands it covers, between its columns. */
+    CHECK(message(10, HS_CLEAR, 1, 0) == HS_OK);
+    for (unsigned b = 0; b < HS_BANDS; ++b) CHECK(hindsight_damage(b) == (240U << 8));
+    for (unsigned b = 0; b < HS_BANDS; ++b) CHECK(hindsight_damage(b) == 0); /* asking forgets */
+    /* Scale 2 at (30, 40): rows 40-53, band 2 then 3; 3 glyphs of 12 columns. */
+    CHECK(text(30, 40, 2, 2, "ABC") == HS_OK);
+    CHECK(hindsight_damage(1) == 0 && hindsight_damage(2) == (30U | 66U << 8) &&
+          hindsight_damage(3) == (30U | 66U << 8) && hindsight_damage(4) == 0);
+    /* The same again changes nothing, so nothing is repainted. */
+    revision = hindsight_revision();
+    CHECK(text(30, 40, 2, 2, "ABC") == HS_OK && hindsight_revision() == revision);
+    for (unsigned b = 0; b < HS_BANDS; ++b) CHECK(hindsight_damage(b) == 0);
+    /* Shorter, then longer: the old text's place and the new one's. */
+    CHECK(text(30, 40, 2, 2, "A") == HS_OK && hindsight_damage(2) == (30U | 66U << 8));
+    CHECK(text(30, 40, 2, 2, "ABCD") == HS_OK && hindsight_damage(3) == (30U | 78U << 8));
+    /* A new colour alone is a change. */
+    CHECK(text(30, 40, 2, 3, "ABCD") == HS_OK && hindsight_damage(2) == (30U | 78U << 8));
+    /* Two changes between asks: their union. */
+    (void)hindsight_damage(3);
+    CHECK(text(200, 32, 1, 2, "Z") == HS_OK && text(0, 34, 1, 2, "Y") == HS_OK);
+    CHECK(hindsight_damage(2) == (0U | 206U << 8));
+    /* Removing repaints where it was; removing nothing repaints nothing. */
+    CHECK(text(30, 40, 2, 3, "") == HS_OK && hindsight_damage(2) == (30U | 78U << 8) &&
+          hindsight_damage(3) == (30U | 78U << 8));
+    CHECK(text(31, 40, 2, 3, "") == HS_OK);
+    for (unsigned b = 0; b < HS_BANDS; ++b) CHECK(hindsight_damage(b) == 0);
+    /* Text that runs off the right edge repaints only the glyphs that fit;
+     * the bottom band is the last. */
+    CHECK(text(228, 226, 2, 2, "WIDE") == HS_OK && hindsight_damage(14) == (228U | 240U << 8));
+    /* What is refused, or released, repaints nothing. */
+    CHECK(text(0, 0, 9, 2, "x") == HS_MALFORMED);
+    CHECK(message(11, HS_RELEASE, 0) == HS_OK && text(0, 0, 1, 2, "x") == HS_RELEASED);
+    for (unsigned b = 0; b < HS_BANDS; ++b) CHECK(hindsight_damage(b) == 0);
+
     /* Sixteen items, then the list is full. */
     CHECK(message(3, HS_CLEAR, 1, 0) == HS_OK && !hindsight_item(0));
     for (unsigned i = 0; i < HS_ITEMS; ++i) CHECK(text(0, 14 * i, 1, 2, "ROW") == HS_OK);

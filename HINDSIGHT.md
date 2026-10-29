@@ -137,6 +137,11 @@ the Pi answers neither; sent to the keyboard, OFFER is answered unknown
   counter can't undo a HOME.
 - **TEXT works by place.** TEXT where there's already text replaces it,
   and TEXT with no text removes it. At least one glyph has to fit.
+- **A change repaints only its bands:** the 16-row bands it covers,
+  between the columns it covers. A TEXT repaints where the old text was
+  and where the new one is; the same TEXT again repaints nothing; a CLEAR
+  repaints the whole screen. A counter at scale 4 is two or three bands of
+  the fifteen, so it no longer keeps the LCD busy.
 - **Limits:** up to 16 items of 40 characters, in seven colours (black,
   panel, text, dim, accent, green and amber). Lowercase is drawn as
   capitals, which is the font Open has.
@@ -196,15 +201,13 @@ that sent the CLEAR, instead of acting on Open's hidden page:
 
 What isn't done yet:
 - The pad and button LEDs keep showing Open's state.
-- Any change repaints the whole screen. That is bounded at 4 ms of each
-  poll, so it's safe, but a fast counter keeps the LCD busy. Repainting
-  only the changed text is the next step.
 
 ## Seeing the screen without a keyboard
 
 ```sh
 tools/screen/run.sh                         # tools/screen/pass1.txt
 tools/screen/run.sh tools/screen/surface.txt
+tools/screen/run.sh tools/screen/repaint.txt
 ```
 
 It compiles this `app/` code on Open's simulator (`web/engine`) with the
@@ -218,7 +221,9 @@ scripts and uploads the pictures. It fails unless:
 - a TEXT after HOME changed nothing;
 - HOME held a second and let go offered the screen, once and only on the
   release; HOME let go sooner, with SHIFT, with PLAY, a key or an encoder
-  meanwhile, or pressed while the Pi had the screen offered nothing.
+  meanwhile, or pressed while the Pi had the screen offered nothing;
+- a change wrote only the LCD bands it covers (`bands` in a script), and
+  the screen it left is the same picture as one drawn from a CLEAR.
 
 ## Tests
 
@@ -232,8 +237,8 @@ It checks five things:
   printing the areas;
 - that no other file writes Flash;
 - the Pi's protocol: every command, the acks, malformed frames, a full
-  list, a busy port, the surface (each control, ownership across HOME,
-  the clamps) and OFFER;
+  list, a busy port, what each change repaints, the surface (each
+  control, ownership across HOME, the clamps) and OFFER;
 - `flash-diff.py`;
 - that no dump is in the tree.
 
