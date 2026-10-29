@@ -36,8 +36,10 @@
  * while the screen is the keyboard's answers RELEASED and changes nothing.
  *
  * LED sets a light while the Pi has the screen; a light it hasn't set stays
- * the keyboard's, and when the screen goes back so do they all. Pad levels
- * are the LEDs' own, unscaled (the keyboard's pads use up to 48). A
+ * the keyboard's, and when the screen goes back so do they all. A pad's
+ * 0-127 is off to full, and full is Open's brightest: the LEDs get
+ * (level * 48 + 63) / 127, as all sixteen at the LEDs' own 127 would draw
+ * about 2.6 times the current Open's pads do. A
  * blinking button is on for 250 ms and off for 250 ms. The buttons are the
  * surface's ids, below, but for HOME (2, 12) and FADER BANK (1), which stay
  * the keyboard's.
@@ -110,6 +112,8 @@ enum { HS_HELLO = 0, HS_CLEAR = 1, HS_TEXT_AT = 2, HS_RELEASE = 3, HS_KNOB = 4, 
        HS_BOX = 6, HS_BAR = 7, HS_LED = 8, HS_BATCH = 9, HS_ACK = 0x7f };
 /* Version 1's palette was the first seven colours. */
 enum { HS_V1_COLOURS = 7, HS_PADS = 16, HS_LED_BUTTON = 16, HS_BUTTONS = 18 };
+/* A pad's full level on the LEDs: Open's brightest (smk37_pad_color). */
+enum { HS_PAD_FULL = 48 };
 enum { HS_BANDS = 15, HS_BAND_ROWS = 16 };
 enum { HS_PAD_CHANNEL = 9, HS_PAD_NOTE = 36, HS_SURFACE_CHANNEL = 15, HS_KNOB_CC = 21, HS_FADER_CC = 28 };
 enum { HS_OK = 0, HS_UNKNOWN = 1, HS_MALFORMED = 2, HS_FULL = 3, HS_RELEASED = 4 };

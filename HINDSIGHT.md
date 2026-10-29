@@ -171,10 +171,12 @@ the Pi answers neither; sent to the keyboard, OFFER is answered unknown
   malformed; a HELLO or a BATCH inside one is unknown. A frame is up to
   1,024 bytes, F0 to F7, which holds the design's busiest screen (84
   items) in one. Send what goes before what comes, so the list has room.
-- **LED** lights a pad (its RGB, the LEDs' own levels: Open's pads use up
-  to 48 of the 127) or a button (on, off, or blinking 250 ms on and
+- **LED** lights a pad (its RGB, each 0–127 from off to full) or a button (on, off, or blinking 250 ms on and
   250 ms off), by the surface's button ids. HOME and FADER BANK stay the
-  keyboard's. A light the Pi hasn't set stays the keyboard's, a CLEAR
+  keyboard's. A pad's full is Open's brightest: the LEDs get
+  (level × 48 + 63) / 127, because all sixteen pads at the LEDs' own 127
+  would draw about 2.6 times the current of Open's, enough to risk a
+  brown-out. A light the Pi hasn't set stays the keyboard's, a CLEAR
   keeps them, and when the screen goes back they all do.
 - **Limits:** up to 96 items, a TEXT of 40 characters, in sixteen colours:
   0 black, 1 panel, 2 text, 3 dim, 4 accent, 5 green, 6 amber, 7–10 the

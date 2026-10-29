@@ -427,8 +427,12 @@ int main(void)
     {
         const uint8_t pad[] = {4, 0x7c, 0x3e, 0x14}, play[] = {16 + 16, 1}, rec[] = {16 + 17, 2},
                       shift[] = {16 + 0, 1}, shift_off[] = {16 + 0, 0};
-        CHECK(led(sizeof pad, pad) == HS_OK && hindsight_pad(4, 0x040804) == 0x7c3e14);
+        CHECK(led(sizeof pad, pad) == HS_OK && hindsight_pad(4, 0x040804) == 0x2f1708);
         CHECK(hindsight_pad(5, 0x040804) == 0x040804);
+        /* 0-127 is off to full, and full is Open's brightest, 48. */
+        const uint8_t full[] = {5, 127, 64, 0}, one[] = {5, 1, 2, 3};
+        CHECK(led(sizeof full, full) == HS_OK && hindsight_pad(5, 0) == 0x301800);
+        CHECK(led(sizeof one, one) == HS_OK && hindsight_pad(5, 0) == 0x000101);
         CHECK(led(sizeof play, play) == HS_OK && hindsight_button(16) == 1);
         CHECK(led(sizeof shift, shift) == HS_OK && hindsight_button(0) == 1);
         CHECK(led(sizeof shift_off, shift_off) == HS_OK && hindsight_button(0) == 0);
@@ -468,7 +472,7 @@ int main(void)
         CHECK(send2(HS_BATCH, batch, batch_length) == HS_OK && sent_length == 11 && done() == 5);
         CHECK(sent[4] == 2 && sent[5] == 40 && sent[10] == 0xf7);
         CHECK(hindsight_active() && hindsight_item(2) && !hindsight_item(3) && hindsight_item(1)->kind == HS_TEXT_AT &&
-              hindsight_pad(0, 0) == 0x0a141e);
+              hindsight_pad(0, 0) == 0x04080b);
         /* It stops at the first that isn't OK; those before it stay done. */
         batch_length = 0;
         n = box_payload(p, 0, 200, 10, 10, 2); add(HS_BOX, p, n);
@@ -481,6 +485,9 @@ int main(void)
                       batch_in[] = {HS_BATCH, 0}, knob_then_bad[] = {HS_KNOB, 2, 0, 5, HS_KNOB, 2, HS_KNOBS, 5};
         CHECK(send2(HS_BATCH, short_cmd, sizeof short_cmd) == HS_MALFORMED && done() == 0);
         CHECK(send2(HS_BATCH, one_byte, sizeof one_byte) == HS_MALFORMED && done() == 0);
+        /* A last command one byte short: without the bound it would take F7 as its value. */
+        const uint8_t knob_short[] = {HS_KNOB, 2, 0};
+        CHECK(send2(HS_BATCH, knob_short, sizeof knob_short) == HS_MALFORMED && done() == 0);
         const uint8_t knob_then_one[] = {HS_KNOB, 2, 1, 9, HS_KNOB};
         CHECK(send2(HS_BATCH, knob_then_one, sizeof knob_then_one) == HS_MALFORMED && done() == 1);
         const uint8_t empty_clear[] = {HS_CLEAR, 0};  /* a command's own length rules are its own */

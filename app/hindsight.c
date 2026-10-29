@@ -143,7 +143,11 @@ static unsigned apply(unsigned version, unsigned command, const uint8_t *p, unsi
         unsigned target = n ? p[0] : 0, id = target - HS_LED_BUTTON;
         if (n == 4 && target < HS_PADS) {
             if (!active) return HS_RELEASED;
-            pads[target] = (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
+            /* 0-127 is off to full, and full is Open's brightest, 48: sixteen
+             * pads at the LEDs' own 127 draw about 2.6 times Open's current. */
+            uint32_t rgb = 0;
+            for (unsigned i = 1; i < 4; ++i) rgb = rgb << 8 | (p[i] * HS_PAD_FULL + 63U) / 127U;
+            pads[target] = rgb;
             pads_set |= 1U << target;
             return HS_OK;
         }

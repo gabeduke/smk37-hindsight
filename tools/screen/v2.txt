@@ -116,7 +116,7 @@ led button 16 1
 led button 17 2
 led button 0 0
 end
-light pad 4 7C3E14
+light pad 4 2F1708                         # 0-127 is off to Open's brightest, 48
 light pad 5 open
 light button 16 1
 light button 0 0
