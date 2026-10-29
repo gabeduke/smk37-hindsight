@@ -13,6 +13,8 @@
  *   expect <hex bytes...>         the keyboard sent this since the last expect
  *   unsent <hex bytes...>         the keyboard didn't send this since the last expect
  *   downloads <n>                 the keyboard has asked for download mode n times
+ *   bands <hex mask>              the LCD's 16-row bands written since the last
+ *                                 `bands` were exactly these (bit b: rows 16b-16b+15)
  *   shot <name>                   save the screen as <out>/<name>.rgb565
  *
  * Everything the keyboard sends is printed as it arrives. A failed expect
@@ -32,6 +34,7 @@ void sim_midi_capture(unsigned enable);
 unsigned sim_midi_output(void);
 int sim_smk37(unsigned kind, unsigned id, int value);
 unsigned sim_download_requests(void);
+unsigned sim_frame_changes(void);
 /* smk37_controls.h's kinds. */
 enum { SMK37_BUTTON, SMK37_KEY, SMK37_PRESSURE, SMK37_PAD, SMK37_ENCODER, SMK37_FADER = 7 };
 
@@ -119,6 +122,9 @@ int main(int argc, char **argv)
         } else if (!strcmp(word, "downloads")) {
             unsigned want = (unsigned)atoi(rest), got = sim_download_requests();
             if (got != want) { printf("  DOWNLOAD MODE ASKED FOR %u TIMES, NOT %u\n", got, want); ++failures; }
+        } else if (!strcmp(word, "bands")) {
+            unsigned want = (unsigned)strtoul(rest, NULL, 16), got = sim_frame_changes();
+            if (got != want) { printf("  BANDS WRITTEN %04X, NOT %04X\n", got, want); ++failures; }
         } else if (!strcmp(word, "shot")) {
             char path[1024];
             snprintf(path, sizeof path, "%s/%s.rgb565", argv[2], rest);

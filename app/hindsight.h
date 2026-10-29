@@ -35,7 +35,10 @@
  * back like any other, and an OFFER is answered UNKNOWN.
  *
  * The keyboard draws from this model on its own control task (screen.c);
- * nothing here touches the screen or Flash.
+ * nothing here touches the screen or Flash. A change repaints only the
+ * 16-row bands it covers, between the columns it covers: a TEXT the place
+ * the old text took and the new one takes, a CLEAR the whole screen. A TEXT
+ * that changes nothing repaints nothing.
  *
  * The surface: while the Pi has the screen, the panel speaks to it instead
  * of Open's hidden page, in plain MIDI to the port that sent the CLEAR:
@@ -63,6 +66,7 @@
 
 enum { HS_VERSION = 1, HS_ITEMS = 16, HS_TEXT = 40, HS_COLOURS = 7, HS_KNOBS = 7 };
 enum { HS_HELLO = 0, HS_CLEAR = 1, HS_TEXT_AT = 2, HS_RELEASE = 3, HS_KNOB = 4, HS_OFFER = 5, HS_ACK = 0x7f };
+enum { HS_BANDS = 15, HS_BAND_ROWS = 16 };
 enum { HS_PAD_CHANNEL = 9, HS_PAD_NOTE = 36, HS_SURFACE_CHANNEL = 15, HS_KNOB_CC = 21, HS_FADER_CC = 28 };
 enum { HS_OK = 0, HS_UNKNOWN = 1, HS_MALFORMED = 2, HS_FULL = 3, HS_RELEASED = 4 };
 
@@ -97,6 +101,10 @@ void hindsight_download_mode(void);
  * screen only if this didn't change while it was held. */
 unsigned hindsight_touches(void);
 unsigned hindsight_revision(void);
+/* Control task, screen.c: where band b (rows 16b to 16b + 15) changed since
+ * it was last asked, as left | right << 8, columns [left, right), or 0 if it
+ * didn't; asking forgets it. */
+unsigned hindsight_damage(unsigned band);
 unsigned hindsight_background(void);
 const struct hs_item *hindsight_item(unsigned index);
 

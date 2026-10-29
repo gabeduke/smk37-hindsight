@@ -1643,12 +1643,14 @@ static __attribute__((noinline, cold, minsize)) void draw_page_body(const struct
     hint_draw(hint);
 }
 /* The Pi's screen: its text items on its background, in the palette's
- * order (hindsight.h). Any change repaints the whole screen. It marks the
- * cache as shown with a value no page has, so draw() idles between changes,
- * and a lost DMA band (shown_page = ~0U) repaints it like any page. */
+ * order (hindsight.h). A change repaints only the bands it covers, between
+ * the columns it covers (hindsight_damage); the first frame after the Pi
+ * takes the screen, and a lost DMA band (shown_page = ~0U), repaint all of
+ * it, like any page. Between changes draw() idles. */
 enum { HINDSIGHT_PAGE = 0x100 };
+_Static_assert(HS_BAND_ROWS == PAINT_ROWS && HS_BANDS == PAINT_BANDS, "the Pi's damage is in the painter's bands");
 static const uint16_t hindsight_palette[HS_COLOURS] = {BACK, PANEL, TEXT, DIM, ACCENT, GREEN, AMBER};
-static unsigned hindsight_shown, hindsight_seen;
+static unsigned hindsight_seen;
 /* A HOME press that may offer the screen when it is let go: when it began,
  * and the panel's touches then. */
 static unsigned home_hold, home_touches;
@@ -1656,9 +1658,15 @@ static uint32_t home_ms;
 static void hindsight_draw(void)
 {
     if (!paint_rendering) {
-        if (cache->shown_page == HINDSIGHT_PAGE && hindsight_shown == hindsight_revision()) return;
-        cache->shown_page = HINDSIGHT_PAGE;
-        hindsight_shown = hindsight_revision();
+        if (cache->shown_page != HINDSIGHT_PAGE) {
+            cache->shown_page = HINDSIGHT_PAGE;
+            paint_mark(0, 0, FM1_SCREEN_WIDTH, FM1_SCREEN_HEIGHT);
+        }
+        for (unsigned b = 0; b < HS_BANDS; ++b) {
+            unsigned d = hindsight_damage(b);
+            if (d) paint_mark(d & 255U, b * HS_BAND_ROWS, (d >> 8) - (d & 255U), HS_BAND_ROWS);
+        }
+        return;
     }
     uint16_t back = hindsight_palette[hindsight_background()];
     paint_fill(0, 0, FM1_SCREEN_WIDTH, FM1_SCREEN_HEIGHT, back);
